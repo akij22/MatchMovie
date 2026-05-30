@@ -1,6 +1,5 @@
 package com.example.matchmovie.ui.theme
 
-import android.app.Activity
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
@@ -11,16 +10,36 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 
-private val DarkColorScheme = darkColorScheme(
-    primary = Purple80,
-    secondary = PurpleGrey80,
-    tertiary = Pink80
+private val MatchMovieDarkColorScheme = darkColorScheme(
+    primary = MatchMoviePrimary,
+    secondary = MatchMovieSecondary,
+    tertiary = MatchMovieAccent,
+    background = MatchMovieBackground,
+    surface = MatchMovieCard,
+    surfaceVariant = MatchMovieMutedButton,
+    outline = MatchMovieDivider,
+    onPrimary = MatchMovieLightText,
+    onSecondary = MatchMovieBackground,
+    onTertiary = MatchMovieBackground,
+    onBackground = MatchMovieLightText,
+    onSurface = MatchMovieLightText,
+    onSurfaceVariant = MatchMovieMutedText
 )
 
-private val LightColorScheme = lightColorScheme(
-    primary = Purple40,
-    secondary = PurpleGrey40,
-    tertiary = Pink40
+private val MatchMovieLightColorScheme = lightColorScheme(
+    primary = MatchMoviePrimary,
+    secondary = MatchMovieSecondary,
+    tertiary = MatchMovieAccent,
+    background = MatchMovieBackground,
+    surface = MatchMovieSurface,
+    surfaceVariant = MatchMovieMutedButton,
+    outline = MatchMovieDivider,
+    onPrimary = MatchMovieLightText,
+    onSecondary = MatchMovieBackground,
+    onTertiary = MatchMovieBackground,
+    onBackground = MatchMovieLightText,
+    onSurface = MatchMovieLightText,
+    onSurfaceVariant = MatchMovieMutedText
 
     /* Other default colors to override
     background = Color(0xFFFFFBFE),
@@ -46,8 +65,8 @@ fun MatchMovieTheme(
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
 
-        darkTheme -> DarkColorScheme
-        else -> LightColorScheme
+        darkTheme -> MatchMovieDarkColorScheme
+        else -> MatchMovieLightColorScheme
     }
 
     MaterialTheme(

@@ -1,13 +1,15 @@
 package com.example.matchmovie.network
 
+import com.example.matchmovie.network.dto.MovieResponseDto
 import retrofit2.http.GET
+import retrofit2.http.Query
 
 interface TmdbMovieApi {
 
-    @GET("prices")
+    @GET("search/movie")
+    suspend fun searchMovies (
+        @Query("query") query: String,
+    ): MovieResponseDto
 
-    // Viene restituita una Map, che associa al nome del Coin il suo prezzo attuale
-    // Per ricercare uno specifico coin, posso eseguire prices[coin.name] ?: 0.0
-    suspend fun getPrices(): Map<String, Double>
 
 }

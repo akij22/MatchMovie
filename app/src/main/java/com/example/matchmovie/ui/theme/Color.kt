@@ -2,10 +2,13 @@ package com.example.matchmovie.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
-
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+val MatchMovieBackground = Color(0xFF101820)
+val MatchMovieSurface = Color(0xFF17212B)
+val MatchMovieCard = Color(0xFF202C38)
+val MatchMoviePrimary = Color(0xFFE84A5F)
+val MatchMovieSecondary = Color(0xFFFFB400)
+val MatchMovieAccent = Color(0xFF2EC4B6)
+val MatchMovieMutedButton = Color(0xFF2A3744)
+val MatchMovieMutedText = Color(0xFFAAB6C2)
+val MatchMovieLightText = Color(0xFFF7F9FC)
+val MatchMovieDivider = Color(0xFF2D3A46)
