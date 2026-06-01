@@ -45,8 +45,9 @@ class MainActivity : ComponentActivity() {
             var currentScreen by remember { mutableStateOf(Screen.SearchScreen)}
 
 
-            // Definizione della function che viene triggerata al click di un film presente nella lista di quelli ottenuti in SearchScreen
+            // Function che viene triggerata al click di un film presente nella lista di quelli ottenuti in SearchScreen
             suspend fun onMovieSelected(movie: SingleMovieResultDto) {
+
                 // Recupero il cast del film mediante API
                 val cast = withContext(Dispatchers.IO) {
                     RetrofitInstance.api.getMovieCredits(movie.id)
