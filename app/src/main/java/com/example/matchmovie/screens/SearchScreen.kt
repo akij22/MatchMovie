@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-fun SearchScreen(dao: FilmDAO, onMovieSelected: (SingleMovieResultDto) -> Unit) {
+fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> Unit) {
     var movies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
     var isRefreshing by remember { mutableStateOf(false) }
     var refreshError by remember { mutableStateOf<String?>(null) }
@@ -136,7 +136,9 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: (SingleMovieResultDto) -> Unit) 
 
 // Componente che rappresenta un singolo item da mostrare nella lista dei risultati della ricerca
 @Composable
-private fun MovieResultItem(movie: SingleMovieResultDto, onMovieSelected: (SingleMovieResultDto) -> Unit) {
+private fun MovieResultItem(movie: SingleMovieResultDto, onMovieSelected: suspend (SingleMovieResultDto) -> Unit) {
+    val coroutineScope = rememberCoroutineScope()
+
     Card (
         modifier = Modifier
             .fillMaxWidth()
@@ -195,7 +197,11 @@ private fun MovieResultItem(movie: SingleMovieResultDto, onMovieSelected: (Singl
 
             Spacer(modifier = Modifier.height(8.dp))
             Button(
-                onClick = { onMovieSelected(movie) }
+                onClick = {
+                    coroutineScope.launch {
+                        onMovieSelected(movie)
+                    }
+                }
             ) {
                 Text("Film Details")
             }
