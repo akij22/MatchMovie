@@ -22,9 +22,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.SingleMovieResultDto
@@ -33,7 +35,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
-fun SearchScreen(dao: FilmDAO) {
+fun SearchScreen(dao: FilmDAO, onMovieSelected: (SingleMovieResultDto) -> Unit) {
     var movies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
     var isRefreshing by remember { mutableStateOf(false) }
     var refreshError by remember { mutableStateOf<String?>(null) }
@@ -64,7 +66,7 @@ fun SearchScreen(dao: FilmDAO) {
     }
 
 
-    Column(
+    Column (
         modifier = Modifier.padding(top = 16.dp)
     ) {
         OutlinedTextField(
@@ -119,16 +121,23 @@ fun SearchScreen(dao: FilmDAO) {
             contentPadding = PaddingValues(16.dp),
             modifier = Modifier.fillMaxWidth()
         ) {
+
+            // Renderizzo la lista di films ottenuti dall'API
             items(movies) { movie ->
-                MovieResultItem(movie = movie)
+                MovieResultItem(
+                    movie = movie,
+                    onMovieSelected = onMovieSelected
+                )
             }
         }
     }
 }
 
+
+// Componente che rappresenta un singolo item da mostrare nella lista dei risultati della ricerca
 @Composable
-private fun MovieResultItem(movie: SingleMovieResultDto) {
-    Card(
+private fun MovieResultItem(movie: SingleMovieResultDto, onMovieSelected: (SingleMovieResultDto) -> Unit) {
+    Card (
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 12.dp)
@@ -136,6 +145,24 @@ private fun MovieResultItem(movie: SingleMovieResultDto) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
+
+            // Controllo che il path dell'immagine non sia null
+            if (movie.poster_path != null) {
+                AsyncImage (
+
+                    // Specifico l'url da cui recuperare l'immagine
+                    model = "https://image.tmdb.org/t/p/w500${movie.poster_path}",
+                    contentDescription = "Poster ${movie.title}",
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(260.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+
             Text(
                 text = movie.title,
                 style = MaterialTheme.typography.titleMedium,
@@ -165,6 +192,13 @@ private fun MovieResultItem(movie: SingleMovieResultDto) {
                 text = "Rating: ${movie.vote_average}",
                 style = MaterialTheme.typography.bodySmall
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(
+                onClick = { onMovieSelected(movie) }
+            ) {
+                Text("Film Details")
+            }
         }
     }
 }

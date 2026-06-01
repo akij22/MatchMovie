@@ -53,12 +53,14 @@ private val MatchMovieLightColorScheme = lightColorScheme(
 )
 
 @Composable
-fun MatchMovieTheme(
+fun MatchMovieTheme (
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+
+    // Imposto il tema scuro solo se è di default di sistema
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
