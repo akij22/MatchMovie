@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,10 +38,32 @@ import kotlinx.coroutines.withContext
 @Composable
 fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> Unit) {
     var movies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
+
+    // State per memorizzare i film più popolari mediante apposito endpoint
+    var popularMovies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
+
     var isRefreshing by remember { mutableStateOf(false) }
     var refreshError by remember { mutableStateOf<String?>(null) }
     var filmString by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
+
+    suspend fun obtainFamousFilms() {
+        isRefreshing = true
+
+        try {
+            val response = withContext(Dispatchers.IO) {
+                RetrofitInstance.api.getPopularMovies()
+            }
+
+            popularMovies = response.results
+
+        } catch (e: Exception) {
+            refreshError = e.localizedMessage ?: "Unable to refresh films"
+        } finally {
+            isRefreshing = false
+        }
+    }
+
 
     suspend fun refreshFilms() {
         if (filmString.isBlank()) {
@@ -66,9 +89,16 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
     }
 
 
+    LaunchedEffect(Unit) {
+        obtainFamousFilms()
+    }
+
+
     Column (
         modifier = Modifier.padding(top = 16.dp)
     ) {
+
+        // Barra di ricerca
         OutlinedTextField(
             value = filmString,
             onValueChange = { filmString = it },
