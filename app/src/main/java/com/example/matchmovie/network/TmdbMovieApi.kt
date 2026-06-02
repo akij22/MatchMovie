@@ -1,7 +1,9 @@
 package com.example.matchmovie.network
 
+import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieResponseDto
 import retrofit2.http.GET
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 interface TmdbMovieApi {
@@ -11,5 +13,14 @@ interface TmdbMovieApi {
         @Query("query") query: String,
     ): MovieResponseDto
 
+    @GET("/movie/popular")
+    suspend fun getPopularMovies (): MovieResponseDto
 
+
+    // API per il recupero del cast e del regista
+    @GET("movie/{movie_id}/credits")
+
+    suspend fun getMovieCredits(
+        @Path("movie_id") movieId: Int,
+    ): MovieCreditsDto
 }
