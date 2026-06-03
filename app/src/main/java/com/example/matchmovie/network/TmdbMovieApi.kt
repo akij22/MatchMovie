@@ -13,7 +13,7 @@ interface TmdbMovieApi {
         @Query("query") query: String,
     ): MovieResponseDto
 
-    @GET("/movie/popular")
+    @GET("movie/popular")
     suspend fun getPopularMovies (): MovieResponseDto
 
 

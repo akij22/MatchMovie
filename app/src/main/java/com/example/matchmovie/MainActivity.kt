@@ -55,6 +55,8 @@ class MainActivity : ComponentActivity() {
                 castByMovie = cast
 
                 selectedMovie = movie
+
+                // Passo alla schermata del singolo film cliccato
                 currentScreen = Screen.FilmDetailsScreen
 
             }
