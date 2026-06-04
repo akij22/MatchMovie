@@ -41,6 +41,7 @@ import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.SingleMovieResultDto
 import com.example.matchmovie.screens.FilmDetailScreen
+import com.example.matchmovie.screens.MyListScreen
 import com.example.matchmovie.screens.SearchScreen
 import com.example.matchmovie.ui.theme.MatchMovieBackground
 import com.example.matchmovie.ui.theme.MatchMovieCard
@@ -136,7 +137,7 @@ class MainActivity : ComponentActivity() {
                                 // (TO UPDATE)
                                 Screen.HomeScreen -> PlaceholderScreen(title = "Home")
                                 Screen.ProfileScreen -> PlaceholderScreen(title = "Profile")
-                                Screen.MyListScreen -> PlaceholderScreen(title = "MyList")
+                                Screen.MyListScreen -> MyListScreen(dao)
                             }
                         }
                     }

@@ -269,6 +269,7 @@ fun FilmDetailScreen(
                                     image = clickedFilm.poster_path ?: "",
                                     bio = "",
                                     userRating = userRating,
+                                    release_date = clickedFilm.release_date,
 
                                     // TODO
                                     mood = MovieMood.RELAXED
