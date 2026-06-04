@@ -1,8 +1,13 @@
 package com.example.matchmovie.screens
 
+import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,7 +27,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +42,8 @@ import com.example.matchmovie.network.dto.SingleMovieResultDto
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.matchmovie.components.MovieResultItem
+import com.example.matchmovie.components.PopularMovieCard
 
 @Composable
 fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> Unit) {
@@ -43,12 +53,16 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
     var popularMovies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
 
     var isRefreshing by remember { mutableStateOf(false) }
+    var isLoadingPopularMovies by remember { mutableStateOf(false) }
     var refreshError by remember { mutableStateOf<String?>(null) }
+    var popularMoviesError by remember { mutableStateOf<String?>(null) }
     var filmString by remember { mutableStateOf("") }
+    var hasSubmittedSearch by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
     suspend fun obtainFamousFilms() {
-        isRefreshing = true
+        isLoadingPopularMovies = true
+        popularMoviesError = null
 
         try {
             val response = withContext(Dispatchers.IO) {
@@ -58,9 +72,10 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
             popularMovies = response.results
 
         } catch (e: Exception) {
-            refreshError = e.localizedMessage ?: "Unable to refresh films"
+            Log.e("SearchScreen", "Unable to load popular movies", e)
+            popularMoviesError = "Unable to load popular movies"
         } finally {
-            isRefreshing = false
+            isLoadingPopularMovies = false
         }
     }
 
@@ -101,7 +116,12 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
         // Barra di ricerca
         OutlinedTextField(
             value = filmString,
-            onValueChange = { filmString = it },
+            onValueChange = {
+                filmString = it
+                if (it.isBlank()) {
+                    hasSubmittedSearch = false
+                }
+            },
             label = { Text("Movie title") },
             singleLine = true,
             modifier = Modifier
@@ -126,8 +146,11 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
             onClick = {
 
                 // Lancio la coroutine per ottenere i film dall'API
+                // Imposto lo state di `hasSubmittedSearch` = true, in modo da rimuovere i film popolari
+                // e mostrare la lista di quelli ottenuti mediante ricerca
                 coroutineScope.launch {
                     refreshFilms()
+                    hasSubmittedSearch = true
                 }
             }
         ) {
@@ -152,89 +175,55 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
             modifier = Modifier.fillMaxWidth()
         ) {
 
-            // Renderizzo la lista di films ottenuti dall'API
-            items(movies) { movie ->
-                MovieResultItem(
-                    movie = movie,
-                    onMovieSelected = onMovieSelected
-                )
-            }
-        }
-    }
-}
+            // Finchè l'utente non ricerca un film, mostro quelli popolari
+            if (!hasSubmittedSearch) {
+                item {
+                    Text(
+                        text = "Popular Movies",
+                        color = Color(0xFFF7F9FC),
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 16.dp)
+                    )
+                }
 
+                // Renderizzo la lista di films popolari ottenuti dall'API
+                items(popularMovies) { movie ->
+                    PopularMovieCard(
+                        movie = movie,
+                        onMovieSelected = onMovieSelected
+                    )
+                }
 
-// Componente che rappresenta un singolo item da mostrare nella lista dei risultati della ricerca
-@Composable
-private fun MovieResultItem(movie: SingleMovieResultDto, onMovieSelected: suspend (SingleMovieResultDto) -> Unit) {
-    val coroutineScope = rememberCoroutineScope()
-
-    Card (
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 12.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-
-            // Controllo che il path dell'immagine non sia null
-            if (movie.poster_path != null) {
-                AsyncImage (
-
-                    // Specifico l'url da cui recuperare l'immagine
-                    model = "https://image.tmdb.org/t/p/w500${movie.poster_path}",
-                    contentDescription = "Poster ${movie.title}",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(260.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-
-            Text(
-                text = movie.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-
-            movie.release_date?.takeIf { it.isNotBlank() }?.let { releaseDate ->
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = releaseDate,
-                    style = MaterialTheme.typography.bodySmall
-                )
-            }
-
-            movie.overview?.takeIf { it.isNotBlank() }?.let { overview ->
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = overview,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = "Rating: ${movie.vote_average}",
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        onMovieSelected(movie)
+                if (isLoadingPopularMovies && popularMovies.isEmpty()) {
+                    item {
+                        Text(
+                            text = "Loading popular movies...",
+                            color = Color(0xFFE1BEBF),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
                     }
                 }
-            ) {
-                Text("Film Details")
+
+                popularMoviesError?.let { error ->
+                    item {
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                    }
+                }
+            } else {
+                // Renderizzo la lista di films ottenuti dall'API solo nel momento in cui l'utente invia la ricerca
+                items(movies) { movie ->
+                    MovieResultItem(
+                        movie = movie,
+                        onMovieSelected = onMovieSelected
+                    )
+                }
             }
         }
     }
 }
+
