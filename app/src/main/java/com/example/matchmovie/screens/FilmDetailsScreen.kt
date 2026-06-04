@@ -2,6 +2,7 @@ package com.example.matchmovie.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,9 +20,16 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -34,15 +42,28 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.example.matchmovie.database.FilmDAO
+import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.enumentity.MovieMood
 import com.example.matchmovie.network.dto.MovieCastMemberDto
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieCrewMemberDto
 import com.example.matchmovie.network.dto.SingleMovieResultDto
+import kotlinx.coroutines.launch
 
 @Composable
-fun FilmDetailScreen(clickedFilm: SingleMovieResultDto, cast: MovieCreditsDto?) {
+fun FilmDetailScreen(
+    clickedFilm: SingleMovieResultDto,
+    cast: MovieCreditsDto?,
+    dao: FilmDAO,
+    onBackClick: () -> Unit
+) {
     val backdropUrl = clickedFilm.backdrop_path?.let { "https://image.tmdb.org/t/p/w780$it" }
     val posterUrl = clickedFilm.poster_path?.let { "https://image.tmdb.org/t/p/w500$it" }
+    var userRating by remember { mutableIntStateOf(0) }
+
+    // Coroutine per lanciare operazioni su DB
+    val coroutineScope = rememberCoroutineScope()
 
     LazyColumn(
         modifier = Modifier
@@ -196,6 +217,73 @@ fun FilmDetailScreen(clickedFilm: SingleMovieResultDto, cast: MovieCreditsDto?) 
                     }
                 }
             }
+
+        }
+
+        item {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    text = "Your Rating",
+                    color = Color(0xFFF7F9FC),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+
+                StarRatingSelector(
+                    rating = userRating,
+
+                    // Collego lo State `userRating` al parametro della funzione `rating`
+                    onRatingSelected = { rating -> userRating = rating }
+                )
+
+                Button(
+
+                    // Salvo le stelle selezionate dall'utente, per formattarle in modo differente dalle altre
+                    enabled = userRating > 0,
+                    shape = RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = Color.Black,
+                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(58.dp),
+
+                    // Al click, devo creare un nuovo oggetto UserMovie e salvarlo su DB
+                    onClick = {
+                        coroutineScope.launch {
+                            dao.insert(
+
+                                // Creo un nuovo UserMovie
+                                UserMovie(
+                                    tmdbMovieId = clickedFilm.id,
+                                    title = clickedFilm.title,
+                                    description = clickedFilm.overview ?: "",
+                                    image = clickedFilm.poster_path ?: "",
+                                    bio = "",
+                                    userRating = userRating,
+
+                                    // TODO
+                                    mood = MovieMood.RELAXED
+                                )
+                            )
+                            onBackClick()
+                        }
+                    }
+                ) {
+                    Text(
+                        text = "Save",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         }
     }
 }
@@ -225,6 +313,47 @@ private fun InfoChip(text: String) {
             fontSize = 12.sp,
             lineHeight = 14.sp,
             fontWeight = FontWeight.SemiBold
+        )
+    }
+}
+
+
+// Composable per il rating dell'utente mediante stelle
+@Composable
+private fun StarRatingSelector(
+    rating: Int,
+    onRatingSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        // Renderizzo le 5 stelle
+        (1..5).forEach { starValue ->
+            val isSelected = starValue <= rating
+            Text(
+                text = "★",
+                color = if (isSelected) Color(0xFFFFB400) else Color(0xFF4A5663),
+                fontSize = 36.sp,
+                lineHeight = 40.sp,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+
+                    // Al click su una singola stella, invoco la funzione passata come parametro
+                    // (Ogni stella ha il corrispettivo numero associato)
+                    .clickable { onRatingSelected(starValue) }
+                    .padding(horizontal = 2.dp, vertical = 4.dp)
+            )
+        }
+
+        Text(
+            text = if (rating > 0) "$rating/5" else "Select",
+            color = Color(0xFFE1BEBF),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(start = 6.dp)
         )
     }
 }

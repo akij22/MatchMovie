@@ -122,7 +122,13 @@ class MainActivity : ComponentActivity() {
                                 Screen.FilmDetailsScreen -> selectedMovie?.let { movie ->
 
                                     // Chiamo la nuova schermata, passando il film cliccato e il suo cast come parametri
-                                    FilmDetailScreen(clickedFilm = movie, cast = castByMovie)
+                                    FilmDetailScreen(clickedFilm = movie, cast = castByMovie, dao = dao,
+
+                                        // Lambda per il ritorno alla schermata precedente, dopo aver aggiunto un film alla propria "collezione"
+                                        onBackClick = {
+                                            currentScreen = Screen.SearchScreen
+                                        }
+                                    )
                                 }
 
 
@@ -341,4 +347,3 @@ private fun PlaceholderScreen(title: String) {
         }
     }
 }
-
