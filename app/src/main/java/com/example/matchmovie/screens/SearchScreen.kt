@@ -60,7 +60,7 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
     var hasSubmittedSearch by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
 
-    suspend fun obtainFamousFilms() {
+    suspend fun     obtainFamousFilms() {
         isLoadingPopularMovies = true
         popularMoviesError = null
 

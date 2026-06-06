@@ -18,6 +18,7 @@ data class UserMovie (
     @ColumnInfo(name = "bio") var bio: String?,
     @ColumnInfo(name = "userRating") var userRating: Int,
     @ColumnInfo(name = "mood") var mood: MovieMood,
+    @ColumnInfo(name = "release_date") var release_date: String?,
 
 
 
