@@ -2,6 +2,7 @@ package com.example.matchmovie.network
 
 import com.example.matchmovie.network.dto.ChatRequestDto
 import com.example.matchmovie.network.dto.ChatResponseDto
+import com.example.matchmovie.network.dto.GenreResponseDto
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieResponseDto
 import retrofit2.http.Body
@@ -23,7 +24,6 @@ interface TmdbMovieApi {
 
     // API per il recupero del cast e del regista
     @GET("movies/{movie_id}/credits")
-
     suspend fun getMovieCredits(
         @Path("movie_id") movieId: Int,
     ): MovieCreditsDto
@@ -35,5 +35,8 @@ interface TmdbMovieApi {
     suspend fun sendPrompt(
         @Body request: ChatRequestDto
     ): ChatResponseDto
+
+    @GET("genres")
+    suspend fun getGenres(): GenreResponseDto
 
 }

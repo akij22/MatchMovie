@@ -126,3 +126,9 @@ def chat():
 @app.get("/health")
 def health():
     return jsonify({"status": "ok"})
+
+
+# Endpoint per il recupero di tutti i generi possibili per un film
+@app.get("/genres")
+def genres():
+    return tmdb_get("/genre/movie/list")
