@@ -30,7 +30,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,6 +39,7 @@ import com.example.matchmovie.enumentity.Screen
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.SingleMovieResultDto
+import com.example.matchmovie.screens.AIChatScreen
 import com.example.matchmovie.screens.FilmDetailScreen
 import com.example.matchmovie.screens.MyListScreen
 import com.example.matchmovie.screens.SearchScreen
@@ -130,12 +130,13 @@ class MainActivity : ComponentActivity() {
                                             currentScreen = Screen.SearchScreen
                                         }
                                     )
+
                                 }
 
 
                                 // Mediante il when, assegno ad ogni enumeration la schermata corrispondente
                                 // (TO UPDATE)
-                                Screen.HomeScreen -> PlaceholderScreen(title = "Home")
+                                Screen.ChatScreen -> AIChatScreen()
                                 Screen.ProfileScreen -> PlaceholderScreen(title = "Profile")
                                 Screen.MyListScreen -> MyListScreen(dao)
                             }
@@ -151,7 +152,7 @@ private fun Screen.isBottomTab(): Boolean {
     return this == Screen.SearchScreen ||
         this == Screen.ProfileScreen ||
         this == Screen.MyListScreen ||
-        this == Screen.HomeScreen
+        this == Screen.ChatScreen
 }
 
 
@@ -166,7 +167,7 @@ private enum class BottomBarIcon {
     Search,
     Profile,
     MyList,
-    Home
+    Chat
 }
 
 
@@ -180,7 +181,7 @@ private fun MatchMovieBottomBar(
         BottomBarItem(Screen.SearchScreen, "Search", BottomBarIcon.Search),
         BottomBarItem(Screen.ProfileScreen, "Profile", BottomBarIcon.Profile),
         BottomBarItem(Screen.MyListScreen, "MyList", BottomBarIcon.MyList),
-        BottomBarItem(Screen.HomeScreen, "Home", BottomBarIcon.Home)
+        BottomBarItem(Screen.ChatScreen, "AI Chat", BottomBarIcon.Chat)
     )
 
     NavigationBar(
@@ -290,33 +291,38 @@ private fun BottomBarIconGraphic(
                 )
             }
 
-            BottomBarIcon.Home -> {
-                val roof = Path().apply {
-                    moveTo(size.width * 0.18f, size.height * 0.48f)
-                    lineTo(size.width * 0.5f, size.height * 0.2f)
-                    lineTo(size.width * 0.82f, size.height * 0.48f)
-                }
-                drawPath(roof, color = color, style = stroke)
-                drawLine(
+            BottomBarIcon.Chat -> {
+                drawRoundRect(
                     color = color,
-                    start = Offset(size.width * 0.27f, size.height * 0.48f),
-                    end = Offset(size.width * 0.27f, size.height * 0.8f),
-                    strokeWidth = stroke.width,
-                    cap = StrokeCap.Round
+                    topLeft = Offset(size.width * 0.18f, size.height * 0.2f),
+                    size = Size(size.width * 0.64f, size.height * 0.48f),
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(
+                        size.minDimension * 0.12f,
+                        size.minDimension * 0.12f
+                    ),
+                    style = stroke
                 )
                 drawLine(
                     color = color,
-                    start = Offset(size.width * 0.73f, size.height * 0.48f),
-                    end = Offset(size.width * 0.73f, size.height * 0.8f),
+                    start = Offset(size.width * 0.35f, size.height * 0.68f),
+                    end = Offset(size.width * 0.27f, size.height * 0.82f),
                     strokeWidth = stroke.width,
                     cap = StrokeCap.Round
                 )
-                drawLine(
+                drawCircle(
                     color = color,
-                    start = Offset(size.width * 0.27f, size.height * 0.8f),
-                    end = Offset(size.width * 0.73f, size.height * 0.8f),
-                    strokeWidth = stroke.width,
-                    cap = StrokeCap.Round
+                    radius = size.minDimension * 0.035f,
+                    center = Offset(size.width * 0.38f, size.height * 0.44f)
+                )
+                drawCircle(
+                    color = color,
+                    radius = size.minDimension * 0.035f,
+                    center = Offset(size.width * 0.5f, size.height * 0.44f)
+                )
+                drawCircle(
+                    color = color,
+                    radius = size.minDimension * 0.035f,
+                    center = Offset(size.width * 0.62f, size.height * 0.44f)
                 )
             }
         }

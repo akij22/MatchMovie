@@ -3,7 +3,7 @@ package com.example.matchmovie.enumentity
 enum class Screen {
     LoginPage,
 
-    HomeScreen,
+    ChatScreen,
 
     ProfileScreen,
 
