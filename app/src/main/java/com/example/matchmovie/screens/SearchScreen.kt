@@ -44,6 +44,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.matchmovie.components.MovieResultItem
 import com.example.matchmovie.components.PopularMovieCard
+import com.example.matchmovie.enumentity.MovieMood
 
 @Composable
 fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> Unit) {
@@ -58,9 +59,83 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
     var popularMoviesError by remember { mutableStateOf<String?>(null) }
     var filmString by remember { mutableStateOf("") }
     var hasSubmittedSearch by remember { mutableStateOf(false) }
+
+    // Mappa <ID Genre, Genre String>
+    var genresById by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
     val coroutineScope = rememberCoroutineScope()
 
-    suspend fun obtainFamousFilms() {
+
+    // Dato un genere, lo mappo in un Mood specifico
+    fun mapGenreToMood(genre: String): MovieMood {
+        return when (genre) {
+            "Comedy" -> MovieMood.FUNNY
+            "Romance" -> MovieMood.ROMANTIC
+            "Horror" -> MovieMood.SCARY
+            "Thriller", "Crime", "Mystery", "War" -> MovieMood.DARK
+            "Action", "Adventure" -> MovieMood.ACTION
+            "Science Fiction", "Fantasy" -> MovieMood.MIND_BLOWING
+            "Drama", "History", "Documentary" -> MovieMood.SAD
+            "Animation", "Family", "Music" -> MovieMood.HAPPY
+            else -> MovieMood.RELAXED
+        }
+    }
+
+
+    // Data una lista di ID di generi APPARTENENTI AD UN FILM, ottengo il genere in formato stringa mediante la mappa `genresById`
+    // Dopodichè, passo il genere in formato stringa alla funzione `mapGenreToMood` per ottenere il rispettivo Mood
+    fun mapMovieGenresToMood(
+
+        // Lista di ID di generi appartenenti al film
+        FilmGenreIds: List<Int>,
+        genreNamesById: Map<Int, String> = genresById
+    ): MovieMood {
+        return FilmGenreIds
+            .mapNotNull { genreId -> genreNamesById[genreId] }
+
+            // Dato il genere in formato stringa, applico il mood corrispondente
+            .map { genre -> mapGenreToMood(genre) }
+
+            // Prendo il primo mood trovato valido
+            .firstOrNull()
+            ?: MovieMood.NOT_SPECIFIED
+    }
+
+    // Data una lista di films e lo state `genresById`, assegno ad ogni film
+    // il suo mood mediante la mappatura genere --> mood
+    fun applyMoodToMovies(
+        films: List<SingleMovieResultDto>,
+        genreNamesById: Map<Int, String> = genresById
+    ): List<SingleMovieResultDto> {
+        return films.map { movie ->
+            movie.copy(
+
+                // Il mood del singolo film corrisponde alla mappatura Genre --> MovieMood
+                mood = mapMovieGenresToMood(movie.genre_ids, genreNamesById)
+            )
+        }
+    }
+
+    // Recupero dei generi mediante API del backend
+    suspend fun obtainGenres(): Map<Int, String> {
+        return try {
+            val response = withContext(Dispatchers.IO) {
+                RetrofitInstance.api.getGenres()
+            }
+
+            // Mappatura da genere a mood
+            // Memorizzo i mood di un film all'interno di una map di MovieMood
+            val loadedGenresById = response.genres.associate { genre ->
+                genre.id to genre.name
+            }
+            genresById = loadedGenresById
+            loadedGenresById
+        } catch (e: Exception) {
+            Log.e("SearchScreen", "Unable to load movie genres", e)
+            emptyMap()
+        }
+    }
+
+    suspend fun obtainFamousFilms(genreNamesById: Map<Int, String> = genresById) {
         isLoadingPopularMovies = true
         popularMoviesError = null
 
@@ -69,7 +144,8 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
                 RetrofitInstance.api.getPopularMovies()
             }
 
-            popularMovies = response.results
+            // Applico il mood ottenuto alla lista di film popolari della SearchScreen
+            popularMovies = applyMoodToMovies(response.results, genreNamesById)
 
         } catch (e: Exception) {
             Log.e("SearchScreen", "Unable to load popular movies", e)
@@ -80,7 +156,8 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
     }
 
 
-    suspend fun refreshFilms() {
+    // Funzione per ottenere i film ricercati mediante Query dell'utente
+    suspend fun obtainSearchedFilms() {
         if (filmString.isBlank()) {
             movies = emptyList()
             refreshError = null
@@ -91,11 +168,16 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
         refreshError = null
 
         try {
+            val genreNamesById = genresById.ifEmpty {
+                obtainGenres()
+            }
+
             val response = withContext(Dispatchers.IO) {
                 RetrofitInstance.api.searchMovies(filmString)
             }
 
-            movies = response.results
+            // Assegno ai film ricercati il mood corrispondente
+            movies = applyMoodToMovies(response.results, genreNamesById)
         } catch (e: Exception) {
             refreshError = e.localizedMessage ?: "Unable to refresh films"
         } finally {
@@ -105,7 +187,8 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
 
 
     LaunchedEffect(Unit) {
-        obtainFamousFilms()
+        val genreNamesById = obtainGenres()
+        obtainFamousFilms(genreNamesById)
     }
 
 
@@ -149,7 +232,7 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
                 // Imposto lo state di `hasSubmittedSearch` = true, in modo da rimuovere i film popolari
                 // e mostrare la lista di quelli ottenuti mediante ricerca
                 coroutineScope.launch {
-                    refreshFilms()
+                    obtainSearchedFilms()
                     hasSubmittedSearch = true
                 }
             }
@@ -226,4 +309,3 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
         }
     }
 }
-

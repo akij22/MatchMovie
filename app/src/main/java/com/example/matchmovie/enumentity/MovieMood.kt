@@ -10,5 +10,6 @@ enum class MovieMood {
     FUNNY,
     SCARY,
     ACTION,
-    RELAXED
+    RELAXED,
+    NOT_SPECIFIED
 }
