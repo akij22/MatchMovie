@@ -1,5 +1,7 @@
 package com.example.matchmovie.network.dto
 
+import com.example.matchmovie.enumentity.MovieMood
+
 data class SingleMovieResultDto (
     val id: Int,
     val title: String,
@@ -10,5 +12,8 @@ data class SingleMovieResultDto (
     val genre_ids: List<Int>,
     val vote_average: Double,
     val original_language: String,
-    val popularity: Double
+    val popularity: Double,
+
+    // Assegno un mood di default
+    val mood: MovieMood = MovieMood.NOT_SPECIFIED
 )

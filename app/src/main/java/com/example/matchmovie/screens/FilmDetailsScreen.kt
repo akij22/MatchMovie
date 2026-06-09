@@ -116,6 +116,7 @@ fun FilmDetailScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         InfoChip(text = "★ ${String.format("%.1f", clickedFilm.vote_average)}")
                         InfoChip(text = clickedFilm.original_language.uppercase())
+                        InfoChip(text = clickedFilm.mood.toString())
                     }
 
                     Text(
@@ -271,8 +272,7 @@ fun FilmDetailScreen(
                                     userRating = userRating,
                                     release_date = clickedFilm.release_date,
 
-                                    // TODO
-                                    mood = MovieMood.RELAXED
+                                    mood = clickedFilm.mood
                                 )
                             )
                             onBackClick()
