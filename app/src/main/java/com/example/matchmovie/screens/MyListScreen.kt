@@ -1,6 +1,8 @@
 package com.example.matchmovie.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +19,8 @@ import androidx.compose.ui.unit.dp
 import com.example.matchmovie.components.MovieDaoItem
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.ui.theme.MatchMovieBackground
+import com.example.matchmovie.ui.theme.MatchMovieMutedText
 
 @Composable
 fun MyListScreen (dao: FilmDAO) {
@@ -32,12 +36,16 @@ fun MyListScreen (dao: FilmDAO) {
 
     LazyColumn(
         contentPadding = PaddingValues(16.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MatchMovieBackground)
+            .fillMaxWidth()
     ) {
         if (userFilmList.isEmpty()) {
             item {
                 Text(
                     text = "No movies saved yet",
+                    color = MatchMovieMutedText,
                     style = MaterialTheme.typography.bodySmall
                 )
             }

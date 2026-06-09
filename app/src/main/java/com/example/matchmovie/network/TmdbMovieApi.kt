@@ -21,6 +21,9 @@ interface TmdbMovieApi {
     @GET("movies/popular")
     suspend fun getPopularMovies (): MovieResponseDto
 
+    @GET("movies/upcoming")
+    suspend fun getUpcomingMovies(): MovieResponseDto
+
 
     // API per il recupero del cast e del regista
     @GET("movies/{movie_id}/credits")
