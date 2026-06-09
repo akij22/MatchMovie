@@ -107,6 +107,11 @@ def popular_movies():
     return tmdb_get("/movie/popular")
 
 
+@app.get("/movies/upcoming")
+def upcoming_movies():
+    return tmdb_get("/movie/upcoming")
+
+
 @app.get("/movies/<int:movie_id>/credits")
 def movie_credits(movie_id):
     return tmdb_get(f"/movie/{movie_id}/credits")

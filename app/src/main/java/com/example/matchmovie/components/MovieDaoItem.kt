@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,11 +17,18 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.ui.theme.MatchMovieCard
+import com.example.matchmovie.ui.theme.MatchMovieLightText
+import com.example.matchmovie.ui.theme.MatchMovieMutedText
 
 // Componente che rappresenta un singolo item da mostrare nella lista dei film salvati dall'utente
 @Composable
 fun MovieDaoItem(movie: UserMovie) {
     Card (
+        colors = CardDefaults.cardColors(
+            containerColor = MatchMovieCard,
+            contentColor = MatchMovieLightText
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 12.dp)
@@ -48,6 +56,7 @@ fun MovieDaoItem(movie: UserMovie) {
 
             Text(
                 text = movie.title,
+                color = MatchMovieLightText,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold
             )
@@ -56,6 +65,7 @@ fun MovieDaoItem(movie: UserMovie) {
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = releaseDate,
+                    color = MatchMovieMutedText,
                     style = MaterialTheme.typography.bodySmall
                 )
             }
@@ -64,6 +74,7 @@ fun MovieDaoItem(movie: UserMovie) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = overview,
+                    color = MatchMovieLightText,
                     style = MaterialTheme.typography.bodyMedium,
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
@@ -73,6 +84,7 @@ fun MovieDaoItem(movie: UserMovie) {
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = "Rating: ${movie.userRating}",
+                color = MatchMovieMutedText,
                 style = MaterialTheme.typography.bodySmall
             )
         }
