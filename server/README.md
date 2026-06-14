@@ -21,9 +21,13 @@ L'emulatore Android raggiunge il server locale con `http://10.0.2.2:5000/`.
 
 - `GET /movies/search?query=<title>`
 - `GET /movies/popular`
+- `GET /movies/upcoming`
 - `GET /movies/<movie_id>/credits`
 - `POST /chat`
+- `POST /auth/register`
+- `POST /auth/login`
 - `GET /health`
+- `GET /genres`
 
 `POST /chat` expects the same JSON shape used by the Android `ChatRequestDto`:
 
@@ -38,5 +42,26 @@ It returns the same JSON shape used by `ChatResponseDto`:
 ```json
 {
   "messageReply": "..."
+}
+```
+
+`POST /auth/register` validates the credentials and returns a password hash to store in the
+Android local Room database:
+
+```json
+{
+  "name": "Mario Rossi",
+  "email": "mario@example.com",
+  "password": "secret1"
+}
+```
+
+`POST /auth/login` verifies a password against the hash already saved locally by the app:
+
+```json
+{
+  "email": "mario@example.com",
+  "password": "secret1",
+  "passwordHash": "..."
 }
 ```

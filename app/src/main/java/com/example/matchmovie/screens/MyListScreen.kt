@@ -18,19 +18,23 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.matchmovie.components.MovieDaoItem
 import com.example.matchmovie.database.FilmDAO
+import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.ui.theme.MatchMovieBackground
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
 
 @Composable
-fun MyListScreen (dao: FilmDAO) {
+fun MyListScreen (
+    dao: FilmDAO,
+    currentUser: User,
+) {
 
     var userFilmList by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
 
 
     // Caricamento dei film dell'utente alla prima apertura di `MyListScreen` mediante una coroutine dedicata
-    LaunchedEffect(Unit) {
-        userFilmList = dao.getAll()
+    LaunchedEffect(currentUser._id) {
+        userFilmList = dao.getMoviesByUser(currentUser._id)
     }
 
 
