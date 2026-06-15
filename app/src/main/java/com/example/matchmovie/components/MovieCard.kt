@@ -31,7 +31,7 @@ import com.example.matchmovie.network.dto.SingleMovieResultDto
 import kotlinx.coroutines.launch
 
 @Composable
-fun PopularMovieCard (
+fun MovieCard (
     movie: SingleMovieResultDto,
     onMovieSelected: suspend (SingleMovieResultDto) -> Unit,
     showReleaseDateBadge: Boolean = false

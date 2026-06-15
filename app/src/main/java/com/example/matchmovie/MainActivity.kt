@@ -68,6 +68,10 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             var selectedMovie by remember { mutableStateOf<SingleMovieResultDto?>(null) }
+
+            // State per distinguere film upComing da quelli gia usciti
+            var selectedMovieIsUpcoming by remember { mutableStateOf(false) }
+
             var currentUser by remember { mutableStateOf<User?>(null) }
             var isAuthLoaded by remember { mutableStateOf(false) }
             val coroutineScope = rememberCoroutineScope()
@@ -98,8 +102,10 @@ class MainActivity : ComponentActivity() {
             }
 
 
-            // Function che viene triggerata al click di un film presente nella lista di quelli ottenuti in SearchScreen
-            suspend fun onMovieSelected(movie: SingleMovieResultDto) {
+            // Function che viene triggerata al click di un film presente nella lista di quelli ottenuti in HomeScreen
+
+            // Al click su un film, in base alla lista da cui l'ho ottenuto, distinguo se è upComing oppure no
+            suspend fun onMovieSelected(movie: SingleMovieResultDto, isUpcomingMovie: Boolean = false) {
 
                 // Recupero il cast del film mediante API
                 val cast = withContext(Dispatchers.IO) {
@@ -108,6 +114,7 @@ class MainActivity : ComponentActivity() {
                 castByMovie = cast
 
                 selectedMovie = movie
+                selectedMovieIsUpcoming = isUpcomingMovie
 
                 // Passo alla schermata del singolo film cliccato
                 currentScreen = Screen.FilmDetailsScreen
@@ -168,6 +175,9 @@ class MainActivity : ComponentActivity() {
                                             dao = dao,
                                             currentUser = user,
 
+                                            // Se è un upComingMovie (=true), non posso salvarlo (=false)
+                                            canSaveMovie = !selectedMovieIsUpcoming,
+
                                             // Lambda per il ritorno alla schermata precedente, dopo aver aggiunto un film alla propria "collezione"
                                             onBackClick = {
                                                 currentScreen = Screen.HomeScreen
@@ -198,8 +208,11 @@ class MainActivity : ComponentActivity() {
                                             withContext(Dispatchers.IO) {
                                                 dao.logoutAllUsers()
                                             }
+
+                                            // "Pulisco" la sessione corrente
                                             currentUser = null
                                             selectedMovie = null
+                                            selectedMovieIsUpcoming = false
                                             castByMovie = null
                                             currentScreen = Screen.LoginPage
                                         }

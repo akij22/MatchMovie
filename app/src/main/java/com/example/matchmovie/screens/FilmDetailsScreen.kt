@@ -60,6 +60,7 @@ fun FilmDetailScreen(
 
     // currentUser passato mediante la MainActivity, la quale ha l'utente attualmente loggato in una state variable
     currentUser: User,
+    canSaveMovie: Boolean = true,
     onBackClick: () -> Unit
 ) {
     val backdropUrl = clickedFilm.backdrop_path?.let { "https://image.tmdb.org/t/p/w780$it" }
@@ -225,69 +226,71 @@ fun FilmDetailScreen(
 
         }
 
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 24.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
-                Text(
-                    text = "Your Rating",
-                    color = Color(0xFFF7F9FC),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-
-                StarRatingSelector(
-                    rating = userRating,
-
-                    // Collego lo State `userRating` al parametro della funzione `rating`
-                    onRatingSelected = { rating -> userRating = rating }
-                )
-
-                Button(
-
-                    // Salvo le stelle selezionate dall'utente, per formattarle in modo differente dalle altre
-                    enabled = userRating > 0,
-                    shape = RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = Color.Black,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                        disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
+        if (canSaveMovie) {
+            item {
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(58.dp),
-
-                    // Al click, devo creare un nuovo oggetto UserMovie e salvarlo su DB
-                    onClick = {
-                        coroutineScope.launch {
-                            dao.insert(
-
-                                // Creo un nuovo UserMovie
-                                UserMovie(
-                                    userId = currentUser._id,
-                                    tmdbMovieId = clickedFilm.id,
-                                    title = clickedFilm.title,
-                                    description = clickedFilm.overview ?: "",
-                                    image = clickedFilm.poster_path ?: "",
-                                    bio = "",
-                                    userRating = userRating,
-                                    release_date = clickedFilm.release_date,
-
-                                    mood = clickedFilm.mood
-                                )
-                            )
-                            onBackClick()
-                        }
-                    }
+                        .padding(horizontal = 16.dp, vertical = 24.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
                     Text(
-                        text = "Save",
+                        text = "Your Rating",
+                        color = Color(0xFFF7F9FC),
+                        style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold
                     )
+
+                    StarRatingSelector(
+                        rating = userRating,
+
+                        // Collego lo State `userRating` al parametro della funzione `rating`
+                        onRatingSelected = { rating -> userRating = rating }
+                    )
+
+                    Button(
+
+                        // Salvo le stelle selezionate dall'utente, per formattarle in modo differente dalle altre
+                        enabled = userRating > 0,
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = Color.Black,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(58.dp),
+
+                        // Al click, devo creare un nuovo oggetto UserMovie e salvarlo su DB
+                        onClick = {
+                            coroutineScope.launch {
+                                dao.insert(
+
+                                    // Creo un nuovo UserMovie
+                                    UserMovie(
+                                        userId = currentUser._id,
+                                        tmdbMovieId = clickedFilm.id,
+                                        title = clickedFilm.title,
+                                        description = clickedFilm.overview ?: "",
+                                        image = clickedFilm.poster_path ?: "",
+                                        bio = "",
+                                        userRating = userRating,
+                                        release_date = clickedFilm.release_date,
+
+                                        mood = clickedFilm.mood
+                                    )
+                                )
+                                onBackClick()
+                            }
+                        }
+                    ) {
+                        Text(
+                            text = "Save",
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         }

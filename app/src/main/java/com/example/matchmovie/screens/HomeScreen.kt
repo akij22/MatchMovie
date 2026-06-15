@@ -52,14 +52,17 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.matchmovie.components.MovieResultItem
-import com.example.matchmovie.components.PopularMovieCard
+import com.example.matchmovie.components.MovieCard
 import com.example.matchmovie.enumentity.MovieMood
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 @Composable
-fun HomeScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> Unit) {
+fun HomeScreen(
+    dao: FilmDAO,
+    onMovieSelected: suspend (SingleMovieResultDto, Boolean) -> Unit
+) {
     var movies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
 
     // State per memorizzare i film più popolari mediante apposito endpoint
@@ -176,7 +179,9 @@ fun HomeScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> 
     }
 
 
-    // Funzione per il recupero dei film in uscita
+    // Funzione per il recupero dei film in uscita dall'endpoint
+    // Successivamente li filtro per ottenere quelli non presenti anche nella lista `popularFilms`
+    // e per ottenere solo quelli la cui release_date è > data odierna
     suspend fun obtainUpcomingFilms(genreNamesById: Map<Int, String> = genresById) {
         isLoadingUpcomingMovies = true
         upcomingMoviesError = null
@@ -188,6 +193,7 @@ fun HomeScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> 
             val popularMovieIds = popularMovies.map { movie -> movie.id }.toSet()
             val upcomingMoviesNotInPopular = response.results.filterNot { movie ->
                 movie.id in popularMovieIds
+
             }.filter { movie ->
                 val releaseDate = movie.release_date
                 !releaseDate.isNullOrBlank() && releaseDate > todayIso
@@ -310,7 +316,9 @@ fun HomeScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> 
                         // Renderizzo il film in primo piano nella parte alta della SearchScreen
                         FeaturedMovieCard(
                             movie = movie,
-                            onMovieSelected = onMovieSelected
+                            onMovieSelected = { selectedMovie ->
+                                onMovieSelected(selectedMovie, false)
+                            }
                         )
                     }
                 }
@@ -318,9 +326,11 @@ fun HomeScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> 
                 item {
                     // Renderizzo la lista di films popolari ottenuti dall'API
                     MovieSection(
-                        title = "Film Popolari",
+                        title = "Popular films",
                         movies = popularMovies,
-                        onMovieSelected = onMovieSelected
+                        onMovieSelected = { selectedMovie ->
+                            onMovieSelected(selectedMovie, false)
+                        }
                     )
                 }
 
@@ -347,9 +357,11 @@ fun HomeScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> 
                 item {
                     // Renderizzo la lista di films in arrivo ottenuti dall'API
                     UpcomingMovieSection(
-                        title = "Prossimamente",
+                        title = "Available soon",
                         movies = upComingMovies,
-                        onMovieSelected = onMovieSelected
+                        onMovieSelected = { selectedMovie ->
+                            onMovieSelected(selectedMovie, true)
+                        }
                     )
                 }
 
@@ -377,7 +389,9 @@ fun HomeScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> 
                 items(movies) { movie ->
                     MovieResultItem(
                         movie = movie,
-                        onMovieSelected = onMovieSelected
+                        onMovieSelected = { selectedMovie ->
+                            onMovieSelected(selectedMovie, false)
+                        }
                     )
                 }
             }
@@ -573,9 +587,9 @@ private fun MovieSection(
             contentPadding = PaddingValues(end = 8.dp)
         ) {
             items(movies) { movie ->
-                PopularMovieCard(
+                MovieCard(
                     movie = movie,
-                    onMovieSelected = onMovieSelected
+                    onMovieSelected = onMovieSelected,
                 )
             }
         }
@@ -600,8 +614,10 @@ private fun UpcomingMovieSection(
             contentPadding = PaddingValues(end = 8.dp)
         ) {
             items(movies) { movie ->
-                PopularMovieCard(
+                MovieCard(
                     movie = movie,
+
+                    // Al click su un film in arrivo, mostro il dettaglio ma senza possibilita di salvataggio
                     onMovieSelected = onMovieSelected,
                     showReleaseDateBadge = true
                 )
