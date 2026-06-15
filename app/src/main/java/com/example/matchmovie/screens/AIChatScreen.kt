@@ -41,21 +41,19 @@ import kotlinx.coroutines.withContext
 
 
 @Composable
-fun AIChatScreen() {
+fun AIChatScreen(
+    chatMessages: List<ChatMessage>,
+    onChatMessagesChange: (List<ChatMessage>) -> Unit,
+    messagePrompt: String,
+    onMessagePromptChange: (String) -> Unit
+) {
 
     var hasSubmittedSearch by remember { mutableStateOf(false) }
 
 
-    // Prompt ("progressivo") scritto dall'utente
-    var messagePrompt by remember { mutableStateOf("") }
-
     val coroutineScope = rememberCoroutineScope()
     var isSending by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    // Mantengo una lista di messaggi da renderizzare in chat
-    var chatMessages by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
-
 
     Box(
         modifier = Modifier
@@ -124,7 +122,7 @@ fun AIChatScreen() {
             OutlinedTextField(
                 value = messagePrompt,
                 onValueChange = {
-                    messagePrompt = it
+                    onMessagePromptChange(it)
                     if (it.isBlank()) {
                         hasSubmittedSearch = false
                     }
@@ -148,19 +146,20 @@ fun AIChatScreen() {
                 onClick = {
                     if (messagePrompt.isNotBlank()) {
                         val currentPrompt = messagePrompt.trim()
-
-                        // Aggiunta del messaggio corrente alla lista di messaggi sa mostrare nella chat (lato UI)
-                        chatMessages += ChatMessage(
+                        val updatedChatMessages = chatMessages + ChatMessage(
                             currentPrompt,
                             MessageSender.USER
                         )
+
+                        // Aggiunta del messaggio corrente alla lista di messaggi sa mostrare nella chat (lato UI)
+                        onChatMessagesChange(updatedChatMessages)
 
                         // Creazione di un oggetto data class di tipo ChatRequestDto
                         val request = ChatRequestDto(
                             messagePrompt = currentPrompt
                         )
 
-                        messagePrompt = ""
+                        onMessagePromptChange("")
                         hasSubmittedSearch = true
 
                         coroutineScope.launch {
@@ -178,9 +177,11 @@ fun AIChatScreen() {
 
 
                                 // Aggiunta della risposta del modello AI alla lista di messaggi della chat
-                                chatMessages = chatMessages + ChatMessage(
-                                    response.messageReply,
-                                    MessageSender.AIASSISTANT
+                                onChatMessagesChange(
+                                    updatedChatMessages + ChatMessage(
+                                        assistantReply,
+                                        MessageSender.AIASSISTANT
+                                    )
                                 )
 
                             } catch (e: Exception) {

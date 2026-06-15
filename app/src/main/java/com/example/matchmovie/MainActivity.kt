@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import com.example.matchmovie.database.FilmDatabase
 import com.example.matchmovie.database.User
 import com.example.matchmovie.enumentity.Screen
+import com.example.matchmovie.model.ChatMessage
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.SingleMovieResultDto
@@ -47,7 +48,7 @@ import com.example.matchmovie.screens.FilmDetailScreen
 import com.example.matchmovie.screens.LoginScreen
 import com.example.matchmovie.screens.MyListScreen
 import com.example.matchmovie.screens.ProfileScreen
-import com.example.matchmovie.screens.SearchScreen
+import com.example.matchmovie.screens.HomeScreen
 import com.example.matchmovie.ui.theme.MatchMovieBackground
 import com.example.matchmovie.ui.theme.MatchMovieCard
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
@@ -74,6 +75,10 @@ class MainActivity : ComponentActivity() {
             // Memorizzo il cast ottenuto dall'id del film
             var castByMovie by remember { mutableStateOf<MovieCreditsDto?>(null) }
 
+            // Mantengo lo stato della chat nel componente padre di AIChatScreen, così non viene perso cambiando schermata
+            var chatMessages by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
+            var chatMessagePrompt by remember { mutableStateOf("") }
+
 
             // Imposto come schermata di inizio quella di Login
             var currentScreen by remember { mutableStateOf(Screen.LoginPage)}
@@ -88,7 +93,7 @@ class MainActivity : ComponentActivity() {
 
                 // Se c'è un utente loggato, mostro la relativa schermata dei film
                 // Altrimenti, devo far eseguire il login (/ signup)
-                currentScreen = if (loggedUser == null) Screen.LoginPage else Screen.SearchScreen
+                currentScreen = if (loggedUser == null) Screen.LoginPage else Screen.HomeScreen
                 isAuthLoaded = true
             }
 
@@ -145,10 +150,10 @@ class MainActivity : ComponentActivity() {
                                         dao = dao,
                                         onAuthenticated = { user ->
                                             currentUser = user
-                                            currentScreen = Screen.SearchScreen
+                                            currentScreen = Screen.HomeScreen
                                         }
                                     )
-                                Screen.SearchScreen -> SearchScreen(
+                                Screen.HomeScreen -> HomeScreen(
                                     dao,
                                     ::onMovieSelected
                                 )
@@ -165,7 +170,7 @@ class MainActivity : ComponentActivity() {
 
                                             // Lambda per il ritorno alla schermata precedente, dopo aver aggiunto un film alla propria "collezione"
                                             onBackClick = {
-                                                currentScreen = Screen.SearchScreen
+                                                currentScreen = Screen.HomeScreen
                                             }
                                         )
 
@@ -178,8 +183,14 @@ class MainActivity : ComponentActivity() {
 
 
                                 // Mediante il when, assegno ad ogni enumeration la schermata corrispondente
-                                // (TO UPDATE)
-                                Screen.ChatScreen -> AIChatScreen()
+                                Screen.ChatScreen -> AIChatScreen(
+
+                                    // Passo chatMessages e messagePrompt come parametri del Composable, in modo da mantenerli anche al cambio di schermata
+                                    chatMessages = chatMessages,
+                                    onChatMessagesChange = { chatMessages = it },
+                                    messagePrompt = chatMessagePrompt,
+                                    onMessagePromptChange = { chatMessagePrompt = it }
+                                )
                                 Screen.ProfileScreen -> ProfileScreen(
                                     user = currentUser,
                                     onLogout = {
@@ -213,7 +224,7 @@ class MainActivity : ComponentActivity() {
 }
 
 private fun Screen.isBottomTab(): Boolean {
-    return this == Screen.SearchScreen ||
+    return this == Screen.HomeScreen ||
         this == Screen.ProfileScreen ||
         this == Screen.MyListScreen ||
         this == Screen.ChatScreen
@@ -242,7 +253,7 @@ private fun MatchMovieBottomBar(
     onTabSelected: (Screen) -> Unit
 ) {
     val items = listOf(
-        BottomBarItem(Screen.SearchScreen, "Search", BottomBarIcon.Search),
+        BottomBarItem(Screen.HomeScreen, "Home", BottomBarIcon.Search),
         BottomBarItem(Screen.ProfileScreen, "Profile", BottomBarIcon.Profile),
         BottomBarItem(Screen.MyListScreen, "MyList", BottomBarIcon.MyList),
         BottomBarItem(Screen.ChatScreen, "AI Chat", BottomBarIcon.Chat)

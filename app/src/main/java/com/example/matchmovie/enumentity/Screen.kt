@@ -10,7 +10,7 @@ enum class Screen {
     MyListScreen,
 
     // Contiene la barra di ricerca + la lista dei risultati ottenuti (sottoforma di lista)
-    SearchScreen,
+    HomeScreen,
 
     // Contiene i dettagli di un film selezionato dall'utente, ottenuto dalla ricerca
     FilmDetailsScreen,
