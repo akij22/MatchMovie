@@ -19,10 +19,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -36,8 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -55,7 +59,7 @@ import java.util.Date
 import java.util.Locale
 
 @Composable
-fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> Unit) {
+fun HomeScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -> Unit) {
     var movies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
 
     // State per memorizzare i film più popolari mediante apposito endpoint
@@ -181,9 +185,18 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
             val response = withContext(Dispatchers.IO) {
                 RetrofitInstance.api.getUpcomingMovies()
             }
+            val popularMovieIds = popularMovies.map { movie -> movie.id }.toSet()
+            val upcomingMoviesNotInPopular = response.results.filterNot { movie ->
+                movie.id in popularMovieIds
+            }.filter { movie ->
+                val releaseDate = movie.release_date
+                !releaseDate.isNullOrBlank() && releaseDate > todayIso
+            }.sortedBy { movie ->
+                movie.release_date
+            }
 
             // Applico il mood ottenuto alla lista di film in arrivo della SearchScreen
-            upComingMovies = applyMoodToMovies(response.results, genreNamesById)
+            upComingMovies = applyMoodToMovies(upcomingMoviesNotInPopular, genreNamesById)
 
         } catch (e: Exception) {
             Log.e("SearchScreen", "Unable to load upcoming movies", e)
@@ -255,8 +268,7 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
             .padding(top = 16.dp)
     ) {
 
-        // Barra di ricerca
-        OutlinedTextField(
+        HomeSearchBar(
             value = filmString,
             onValueChange = {
                 filmString = it
@@ -264,43 +276,17 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
                     hasSubmittedSearch = false
                 }
             },
-            label = { Text("Movie title") },
-            singleLine = true,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Button(
-            enabled = !isRefreshing && filmString.isNotBlank(),
-            shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            modifier = Modifier
-                .height(58.dp)
-                .padding(start = 16.dp),
-            onClick = {
-
-                // Lancio la coroutine per ottenere i film dall'API
-                // Imposto lo state di `hasSubmittedSearch` = true, in modo da rimuovere i film popolari
-                // e mostrare la lista di quelli ottenuti mediante ricerca
+            isSearching = isRefreshing,
+            onSearch = {
                 coroutineScope.launch {
                     obtainSearchedFilms()
                     hasSubmittedSearch = true
                 }
-            }
-        ) {
-            Text(
-                text = if (isRefreshing) "Searching..." else "Search",
-                fontWeight = FontWeight.Bold
-            )
-        }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
 
         refreshError?.let { error ->
             Spacer(modifier = Modifier.height(8.dp))
@@ -395,6 +381,83 @@ fun SearchScreen(dao: FilmDAO, onMovieSelected: suspend (SingleMovieResultDto) -
                     )
                 }
             }
+        }
+    }
+}
+
+
+// Composable per la barra di ricerca per nome
+@Composable
+private fun HomeSearchBar(
+    value: String,
+    onValueChange: (String) -> Unit,
+    isSearching: Boolean,
+    onSearch: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .height(56.dp)
+            .clip(RoundedCornerShape(50))
+            .background(Color(0xB3232B33))
+            .border(1.dp, Color(0x1AF7F9FC), RoundedCornerShape(50))
+            .padding(start = 16.dp, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "⌕",
+            color = Color(0xFFE1BEBF),
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        BasicTextField(
+            value = value,
+            onValueChange = onValueChange,
+            singleLine = true,
+            textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFFDBE3EF)),
+            cursorBrush = SolidColor(Color(0xFF4FDBCC)),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = {
+                if (value.isNotBlank() && !isSearching) {
+                    onSearch()
+                }
+            }),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp)
+                ) {
+
+                    // Se non c'è alcuna ricerca nel TextField, mostro placeholder
+                    if (value.isBlank()) {
+                        Text(
+                            text = "Cerca film...",
+                            color = Color(0x80E1BEBF),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    innerTextField()
+                }
+            },
+            modifier = Modifier.weight(1f)
+        )
+
+        Button(
+            enabled = value.isNotBlank() && !isSearching,
+            onClick = onSearch,
+            shape = RoundedCornerShape(50),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFFE84A5F),
+                contentColor = Color.White,
+                disabledContainerColor = Color(0xFF2E363E),
+                disabledContentColor = Color(0x80E1BEBF)
+            )
+        ) {
+            Text(
+                text = if (isSearching) "..." else "Cerca",
+                fontWeight = FontWeight.Bold
+            )
         }
     }
 }
