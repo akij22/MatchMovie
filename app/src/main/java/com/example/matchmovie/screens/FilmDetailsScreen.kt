@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.matchmovie.database.FilmDAO
+import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.enumentity.MovieMood
 import com.example.matchmovie.network.dto.MovieCastMemberDto
@@ -56,6 +57,9 @@ fun FilmDetailScreen(
     clickedFilm: SingleMovieResultDto,
     cast: MovieCreditsDto?,
     dao: FilmDAO,
+
+    // currentUser passato mediante la MainActivity, la quale ha l'utente attualmente loggato in una state variable
+    currentUser: User,
     onBackClick: () -> Unit
 ) {
     val backdropUrl = clickedFilm.backdrop_path?.let { "https://image.tmdb.org/t/p/w780$it" }
@@ -264,6 +268,7 @@ fun FilmDetailScreen(
 
                                 // Creo un nuovo UserMovie
                                 UserMovie(
+                                    userId = currentUser._id,
                                     tmdbMovieId = clickedFilm.id,
                                     title = clickedFilm.title,
                                     description = clickedFilm.overview ?: "",

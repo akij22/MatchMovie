@@ -3,8 +3,12 @@ package com.example.matchmovie.network
 import com.example.matchmovie.network.dto.ChatRequestDto
 import com.example.matchmovie.network.dto.ChatResponseDto
 import com.example.matchmovie.network.dto.GenreResponseDto
+import com.example.matchmovie.network.dto.LoginRequestDto
+import com.example.matchmovie.network.dto.LoginResponseDto
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieResponseDto
+import com.example.matchmovie.network.dto.RegisterRequestDto
+import com.example.matchmovie.network.dto.RegisterResponseDto
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -41,5 +45,15 @@ interface TmdbMovieApi {
 
     @GET("genres")
     suspend fun getGenres(): GenreResponseDto
+
+    @POST("auth/register")
+    suspend fun register(
+        @Body request: RegisterRequestDto
+    ): RegisterResponseDto
+
+    @POST("auth/login")
+    suspend fun login(
+        @Body request: LoginRequestDto
+    ): LoginResponseDto
 
 }
