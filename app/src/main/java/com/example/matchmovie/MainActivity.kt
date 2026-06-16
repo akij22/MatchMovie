@@ -166,7 +166,14 @@ class MainActivity : ComponentActivity() {
                                     ::onMovieSelected
                                 )
 
-                                Screen.ExploreScreen -> ExploreScreen()
+                                Screen.ExploreScreen -> currentUser?.let { user ->
+                                    ExploreScreen(
+                                        dao = dao,
+                                        currentUser = user
+                                    )
+                                } ?: run {
+                                    currentScreen = Screen.LoginPage
+                                }
 
                                 Screen.FilmDetailsScreen -> selectedMovie?.let { movie ->
 

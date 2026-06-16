@@ -134,6 +134,11 @@ def movie_credits(movie_id):
     return tmdb_get(f"/movie/{movie_id}/credits")
 
 
+@app.get("/movies/<int:movie_id>/recommendations")
+def movie_recommendations(movie_id):
+    return tmdb_get(f"/movie/{movie_id}/recommendations")
+
+
 @app.post("/chat")
 def chat():
     data = request.get_json(silent=True) or {}
@@ -187,3 +192,8 @@ def health():
 @app.get("/genres")
 def genres():
     return tmdb_get("/genre/movie/list")
+
+
+@app.get("/movies/popular")
+def recommended_movies():
+    return tmdb_get("/movie/popular")

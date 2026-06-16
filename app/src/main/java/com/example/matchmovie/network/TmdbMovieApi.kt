@@ -56,4 +56,10 @@ interface TmdbMovieApi {
         @Body request: LoginRequestDto
     ): LoginResponseDto
 
+
+    @GET("movies/{movie_id}/recommendations")
+    suspend fun getRecommendedMovies(
+        @Path("movie_id") movieId: Int
+    ): MovieResponseDto
+
 }
