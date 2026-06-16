@@ -37,6 +37,8 @@ fun MovieCard (
     showReleaseDateBadge: Boolean = false
 ) {
     val coroutineScope = rememberCoroutineScope()
+
+
     val posterUrl = movie.poster_path?.let { "https://image.tmdb.org/t/p/w500$it" }
     val releaseYear = movie.release_date
         ?.takeIf { it.length >= 4 }
