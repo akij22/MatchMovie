@@ -101,7 +101,7 @@ fun ExploreScreen(
             }
 
         } catch (e: Exception) {
-            errorMessage = e.localizedMessage ?: "Unable to load movies"
+            errorMessage = "Unable to load recommended movies, please try again."
         }
     }
 

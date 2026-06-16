@@ -185,7 +185,7 @@ fun AIChatScreen(
                                 )
 
                             } catch (e: Exception) {
-                                errorMessage = e.localizedMessage ?: "Unable to send message"
+                                errorMessage = "Unable to send message, please try again."
                             } finally {
 
                                 isSending = false
