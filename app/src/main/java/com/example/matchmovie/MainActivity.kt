@@ -44,6 +44,7 @@ import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.SingleMovieResultDto
 import com.example.matchmovie.screens.AIChatScreen
+import com.example.matchmovie.screens.ExploreScreen
 import com.example.matchmovie.screens.FilmDetailScreen
 import com.example.matchmovie.screens.LoginScreen
 import com.example.matchmovie.screens.MyListScreen
@@ -165,6 +166,8 @@ class MainActivity : ComponentActivity() {
                                     ::onMovieSelected
                                 )
 
+                                Screen.ExploreScreen -> ExploreScreen()
+
                                 Screen.FilmDetailsScreen -> selectedMovie?.let { movie ->
 
                                     // Chiamo la nuova schermata, passando il film cliccato e il suo cast come parametri
@@ -238,9 +241,10 @@ class MainActivity : ComponentActivity() {
 
 private fun Screen.isBottomTab(): Boolean {
     return this == Screen.HomeScreen ||
-        this == Screen.ProfileScreen ||
+        this == Screen.ExploreScreen ||
         this == Screen.MyListScreen ||
-        this == Screen.ChatScreen
+        this == Screen.ChatScreen ||
+        this == Screen.ProfileScreen
 }
 
 
@@ -253,6 +257,7 @@ private data class BottomBarItem(
 
 private enum class BottomBarIcon {
     Search,
+    Explore,
     Profile,
     MyList,
     Chat
@@ -267,9 +272,10 @@ private fun MatchMovieBottomBar(
 ) {
     val items = listOf(
         BottomBarItem(Screen.HomeScreen, "Home", BottomBarIcon.Search),
-        BottomBarItem(Screen.ProfileScreen, "Profile", BottomBarIcon.Profile),
+        BottomBarItem(Screen.ExploreScreen, "Explore", BottomBarIcon.Explore),
         BottomBarItem(Screen.MyListScreen, "MyList", BottomBarIcon.MyList),
-        BottomBarItem(Screen.ChatScreen, "AI Chat", BottomBarIcon.Chat)
+        BottomBarItem(Screen.ChatScreen, "AI Chat", BottomBarIcon.Chat),
+        BottomBarItem(Screen.ProfileScreen, "Profile", BottomBarIcon.Profile)
     )
 
     NavigationBar(
@@ -349,6 +355,27 @@ private fun BottomBarIconGraphic(
                     topLeft = Offset(size.width * 0.23f, size.height * 0.43f),
                     size = Size(size.width * 0.54f, size.height * 0.44f),
                     style = stroke
+                )
+            }
+
+            BottomBarIcon.Explore -> {
+                drawCircle(
+                    color = color,
+                    radius = size.minDimension * 0.32f,
+                    center = Offset(size.width * 0.5f, size.height * 0.5f),
+                    style = stroke
+                )
+                drawLine(
+                    color = color,
+                    start = Offset(size.width * 0.5f, size.height * 0.5f),
+                    end = Offset(size.width * 0.66f, size.height * 0.32f),
+                    strokeWidth = stroke.width,
+                    cap = StrokeCap.Round
+                )
+                drawCircle(
+                    color = color,
+                    radius = size.minDimension * 0.035f,
+                    center = Offset(size.width * 0.5f, size.height * 0.5f)
                 )
             }
 
