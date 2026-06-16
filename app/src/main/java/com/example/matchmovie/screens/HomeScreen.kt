@@ -81,6 +81,7 @@ fun HomeScreen(
 
     // Mappa <ID Genre, Genre String>
     var genresById by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
+
     val coroutineScope = rememberCoroutineScope()
 
     val todayIso = remember {
