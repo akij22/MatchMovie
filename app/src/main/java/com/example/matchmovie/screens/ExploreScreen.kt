@@ -32,6 +32,7 @@ import com.example.matchmovie.components.ExploreMovieCard
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.model.loadTopRatedUserMovies
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.SingleMovieResultDto
 import com.example.matchmovie.ui.theme.MatchMovieBackground
@@ -59,6 +60,8 @@ fun ExploreScreen(
 
     LaunchedEffect(currentUser._id) {
         try {
+
+            // Recupero dei film consigliati da mostrare nella schermata Explore
             recommendedMovies = loadRecommendedMovies(
                 dao = dao,
                 userId = currentUser._id
@@ -170,9 +173,10 @@ private suspend fun loadRecommendedMovies(
         * 2. Prendo i primi 5
         * 3. Ottengo i loro ids (con `.map`)
         * */
-        val seedMovieIds = savedMovies
-            .sortedByDescending { movie -> movie.userRating }
-            .take(5)
+        val seedMovieIds = loadTopRatedUserMovies(
+            dao = dao,
+            userId = userId
+        )
             .map { movie -> movie.tmdbMovieId }
 
         if (seedMovieIds.isEmpty()) {
