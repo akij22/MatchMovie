@@ -34,7 +34,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.example.matchmovie.database.FilmDatabase
 import com.example.matchmovie.database.User
@@ -166,7 +165,14 @@ class MainActivity : ComponentActivity() {
                                     ::onMovieSelected
                                 )
 
-                                Screen.ExploreScreen -> ExploreScreen()
+                                Screen.ExploreScreen -> currentUser?.let { user ->
+                                    ExploreScreen(
+                                        dao = dao,
+                                        currentUser = user
+                                    )
+                                } ?: run {
+                                    currentScreen = Screen.LoginPage
+                                }
 
                                 Screen.FilmDetailsScreen -> selectedMovie?.let { movie ->
 

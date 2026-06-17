@@ -45,7 +45,6 @@ import coil3.compose.AsyncImage
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
-import com.example.matchmovie.enumentity.MovieMood
 import com.example.matchmovie.network.dto.MovieCastMemberDto
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieCrewMemberDto

@@ -237,7 +237,7 @@ fun HomeScreen(
             // Assegno ai film ricercati il mood corrispondente
             movies = applyMoodToMovies(response.results, genreNamesById)
         } catch (e: Exception) {
-            refreshError = e.localizedMessage ?: "Unable to refresh films"
+            refreshError = "Unable to search films, please try again."
         } finally {
             isRefreshing = false
         }
