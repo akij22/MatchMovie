@@ -212,6 +212,7 @@ class MainActivity : ComponentActivity() {
                                 )
                                 Screen.ProfileScreen -> ProfileScreen(
                                     user = currentUser,
+                                    dao = dao,
                                     onLogout = {
                                         coroutineScope.launch {
                                             withContext(Dispatchers.IO) {

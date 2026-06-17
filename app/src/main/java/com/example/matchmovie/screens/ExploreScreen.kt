@@ -59,47 +59,10 @@ fun ExploreScreen(
 
     LaunchedEffect(currentUser._id) {
         try {
-
-            val savedMovies = withContext(Dispatchers.IO) {
-
-                // Recupero dei film salvati dall'utente
-                dao.getMoviesByUser(currentUser._id)
-            }
-
-            // Ottengo gli ids dei film salvati
-            val savedMovieIds = savedMovies.map { movie -> movie.tmdbMovieId }.toSet()
-
-            /*
-            * 1. Ordino i film per rating in ordine decrescente
-            * 2. Prendo i primi 5
-            * 3. Ottengo i loro ids (con `.map`)
-            * */
-            val seedMovieIds = savedMovies
-                .sortedByDescending { movie -> movie.userRating }
-                .take(5)
-                .map { movie -> movie.tmdbMovieId }
-
-            recommendedMovies = withContext(Dispatchers.IO) {
-                if (seedMovieIds.isEmpty()) {
-
-                    // Se l'utente non ha film memorizzati, uso come fallback i film popolari
-                    // TODO
-                    RetrofitInstance.api.getPopularMovies()
-                        .results
-                        .filterNot { movie -> movie.id in savedMovieIds }
-                } else {
-
-                    // Per ogni ids all'interno di `seedMovieIds`, chiamo l'endpoint per
-                    // il recupero dei film consigliati e unisco tutte le liste risultanti in una sola
-                    seedMovieIds
-                        .flatMap { movieId ->
-                            RetrofitInstance.api.getRecommendedMovies(movieId).results
-                        }
-                        .filterNot { movie -> movie.id in savedMovieIds }
-                        .distinctBy { movie -> movie.id }
-                }
-            }
-
+            recommendedMovies = loadRecommendedMovies(
+                dao = dao,
+                userId = currentUser._id
+            )
         } catch (e: Exception) {
             errorMessage = "Unable to load recommended movies, please try again."
         }
@@ -180,6 +143,54 @@ fun ExploreScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+
+/*
+* Funzione per:
+* 1. il recupero dei film salvati dall'utente
+* 2. Elaborazione per estrarre, mediante apposita API, possibili film da consigliare
+* */
+private suspend fun loadRecommendedMovies(
+    dao: FilmDAO,
+    userId: Int
+): List<SingleMovieResultDto> {
+    return withContext(Dispatchers.IO) {
+
+        // Recupero dei film salvati dall'utente
+        val savedMovies = dao.getMoviesByUser(userId)
+
+        // Ottengo gli ids dei film salvati
+        val savedMovieIds = savedMovies.map { movie -> movie.tmdbMovieId }.toSet()
+
+        /*
+        * 1. Ordino i film per rating in ordine decrescente
+        * 2. Prendo i primi 5
+        * 3. Ottengo i loro ids (con `.map`)
+        * */
+        val seedMovieIds = savedMovies
+            .sortedByDescending { movie -> movie.userRating }
+            .take(5)
+            .map { movie -> movie.tmdbMovieId }
+
+        if (seedMovieIds.isEmpty()) {
+
+            // Se l'utente non ha film memorizzati, uso come fallback i film popolari
+            RetrofitInstance.api.getPopularMovies()
+                .results
+                .filterNot { movie -> movie.id in savedMovieIds }
+        } else {
+
+            // Per ogni ids all'interno di `seedMovieIds`, chiamo l'endpoint per
+            // il recupero dei film consigliati e unisco tutte le liste risultanti in una sola
+            seedMovieIds
+                .flatMap { movieId ->
+                    RetrofitInstance.api.getRecommendedMovies(movieId).results
+                }
+                .filterNot { movie -> movie.id in savedMovieIds }
+                .distinctBy { movie -> movie.id }
         }
     }
 }
