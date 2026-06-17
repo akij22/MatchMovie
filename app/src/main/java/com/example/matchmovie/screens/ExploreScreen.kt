@@ -153,19 +153,26 @@ fun ExploreScreen(
                                 // Al click del cuore, salvo il currentFilm nella lista dei film salvati
                                 // Passo al prossimo film nella lista
                                 withContext(Dispatchers.IO) {
-                                    dao.insert(
-                                        UserMovie(
-                                            userId = currentUser._id,
-                                            tmdbMovieId = currentMovie.id,
-                                            title = currentMovie.title,
-                                            description = currentMovie.overview.orEmpty(),
-                                            image = currentMovie.poster_path,
-                                            bio = "",
-                                            userRating = 4,
-                                            mood = currentMovie.mood,
-                                            release_date = currentMovie.release_date
-                                        )
+                                    val isAlreadySaved = dao.isMovieSaved(
+                                        userId = currentUser._id,
+                                        tmdbMovieId = currentMovie.id
                                     )
+
+                                    if (!isAlreadySaved) {
+                                        dao.insert(
+                                            UserMovie(
+                                                userId = currentUser._id,
+                                                tmdbMovieId = currentMovie.id,
+                                                title = currentMovie.title,
+                                                description = currentMovie.overview.orEmpty(),
+                                                image = currentMovie.poster_path,
+                                                bio = "",
+                                                userRating = 4,
+                                                mood = currentMovie.mood,
+                                                release_date = currentMovie.release_date
+                                            )
+                                        )
+                                    }
                                 }
                                 currentMovieIndex++
                             }

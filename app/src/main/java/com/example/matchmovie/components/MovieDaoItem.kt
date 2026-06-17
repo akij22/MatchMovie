@@ -30,7 +30,7 @@ import com.example.matchmovie.ui.theme.MatchMovieLightText
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
 import com.example.matchmovie.ui.theme.MatchMoviePrimary
 
-// Componente che rappresenta un singolo item da mostrare nella lista dei film salvati dall'utente
+// Componente che rappresenta un singolo item da mostrare nella lista dei film salvati dall'utente (MyList)
 @Composable
 fun MovieDaoItem(
     movie: UserMovie,
