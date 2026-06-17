@@ -18,6 +18,9 @@ interface FilmDAO{
     @Query("SELECT * FROM UserMovie WHERE userId = :userId")
     suspend fun getMoviesByUser(userId: Int): List<UserMovie>
 
+    @Query("DELETE FROM UserMovie WHERE _id = :movieId")
+    suspend fun deleteUserMovie(movieId: Int)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: User): Long
 

@@ -161,7 +161,7 @@ fun ExploreScreen(
                                             description = currentMovie.overview.orEmpty(),
                                             image = currentMovie.poster_path,
                                             bio = "",
-                                            userRating = 0,
+                                            userRating = 4,
                                             mood = currentMovie.mood,
                                             release_date = currentMovie.release_date
                                         )

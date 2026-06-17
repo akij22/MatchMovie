@@ -13,6 +13,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -22,6 +23,9 @@ import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.ui.theme.MatchMovieBackground
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun MyListScreen (
@@ -30,6 +34,7 @@ fun MyListScreen (
 ) {
 
     var userFilmList by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
+    val coroutineScope = rememberCoroutineScope()
 
 
     // Caricamento dei film dell'utente alla prima apertura di `MyListScreen` mediante una coroutine dedicata
@@ -58,7 +63,19 @@ fun MyListScreen (
         // Renderizzo la lista di film salvati dall'utente
         items(userFilmList) { movie ->
             MovieDaoItem(
-                movie = movie
+                movie = movie,
+
+                // Definizione della function per eliminare un film dalla MyList
+                onDeleteClick = {
+                    coroutineScope.launch {
+                        withContext(Dispatchers.IO) {
+                            dao.deleteUserMovie(movie._id)
+                        }
+                        userFilmList = userFilmList.filterNot { savedMovie ->
+                            savedMovie._id == movie._id
+                        }
+                    }
+                }
             )
         }
     }
