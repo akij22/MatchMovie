@@ -37,8 +37,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
 import com.example.matchmovie.database.FilmDatabase
 import com.example.matchmovie.database.User
+import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.enumentity.Screen
 import com.example.matchmovie.model.ChatMessage
+import com.example.matchmovie.model.MovieDetailsUi
+import com.example.matchmovie.model.toMovieDetailsUi
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.SingleMovieResultDto
@@ -67,10 +70,11 @@ class MainActivity : ComponentActivity() {
         val dao = FilmDatabase.getInstance(applicationContext).getDao()
 
         setContent {
-            var selectedMovie by remember { mutableStateOf<SingleMovieResultDto?>(null) }
+            var selectedMovie by remember { mutableStateOf<MovieDetailsUi?>(null) }
 
             // State per distinguere film upComing da quelli gia usciti
-            var selectedMovieIsUpcoming by remember { mutableStateOf(false) }
+            var selectedMovieCanBeSaved by remember { mutableStateOf(true) }
+            var selectedMovieBackScreen by remember { mutableStateOf(Screen.HomeScreen) }
 
             var currentUser by remember { mutableStateOf<User?>(null) }
             var isAuthLoaded by remember { mutableStateOf(false) }
@@ -102,23 +106,43 @@ class MainActivity : ComponentActivity() {
             }
 
 
+            // Carica i dati condivisi e apre la schermata di dettaglio del film
+            suspend fun openMovieDetails(
+                movieDetails: MovieDetailsUi,
+                canBeSaved: Boolean,
+                backScreen: Screen
+            ) {
+                castByMovie = withContext(Dispatchers.IO) {
+                    RetrofitInstance.api.getMovieCredits(movieDetails.id)
+                }
+
+                selectedMovie = movieDetails
+                selectedMovieCanBeSaved = canBeSaved
+                selectedMovieBackScreen = backScreen
+                currentScreen = Screen.FilmDetailsScreen
+            }
+
             // Function che viene triggerata al click di un film presente nella lista di quelli ottenuti in HomeScreen
 
             // Al click su un film, in base alla lista da cui l'ho ottenuto, distinguo se è upComing oppure no
             suspend fun onMovieSelected(movie: SingleMovieResultDto, isUpcomingMovie: Boolean = false) {
+                openMovieDetails(
+                    movieDetails = movie.toMovieDetailsUi(),
+                    canBeSaved = !isUpcomingMovie,
+                    backScreen = Screen.HomeScreen
+                )
+            }
 
-                // Recupero il cast del film mediante API
-                val cast = withContext(Dispatchers.IO) {
-                    RetrofitInstance.api.getMovieCredits(movie.id)
-                }
-                castByMovie = cast
 
-                selectedMovie = movie
-                selectedMovieIsUpcoming = isUpcomingMovie
-
-                // Passo alla schermata del singolo film cliccato
-                currentScreen = Screen.FilmDetailsScreen
-
+            // Funzione chiamata al click su una Card presente in `MyListScreen`
+            // State hoisting: muovo la funzione che modifica uno state nel Composable antenato comune ai 2
+            // (`MyListScreen` e `HomeScreen`)
+            suspend fun onSavedMovieSelected(movie: UserMovie) {
+                openMovieDetails(
+                    movieDetails = movie.toMovieDetailsUi(),
+                    canBeSaved = false,
+                    backScreen = Screen.MyListScreen
+                )
             }
 
             MatchMovieTheme {
@@ -179,17 +203,17 @@ class MainActivity : ComponentActivity() {
                                     // Chiamo la nuova schermata, passando il film cliccato e il suo cast come parametri
                                     currentUser?.let { user ->
                                         FilmDetailScreen(
-                                            clickedFilm = movie,
+                                            movie = movie,
                                             cast = castByMovie,
                                             dao = dao,
                                             currentUser = user,
 
                                             // Se è un upComingMovie (=true), non posso salvarlo (=false)
-                                            canSaveMovie = !selectedMovieIsUpcoming,
+                                            canSaveMovie = selectedMovieCanBeSaved,
 
                                             // Lambda per il ritorno alla schermata precedente, dopo aver aggiunto un film alla propria "collezione"
                                             onBackClick = {
-                                                currentScreen = Screen.HomeScreen
+                                                currentScreen = selectedMovieBackScreen
                                             }
                                         )
 
@@ -222,7 +246,7 @@ class MainActivity : ComponentActivity() {
                                             // "Pulisco" la sessione corrente
                                             currentUser = null
                                             selectedMovie = null
-                                            selectedMovieIsUpcoming = false
+                                            selectedMovieCanBeSaved = true
                                             castByMovie = null
                                             currentScreen = Screen.LoginPage
                                         }
@@ -231,7 +255,8 @@ class MainActivity : ComponentActivity() {
                                 Screen.MyListScreen -> currentUser?.let { user ->
                                     MyListScreen(
                                         dao = dao,
-                                        currentUser = user
+                                        currentUser = user,
+                                        onMovieSelected = ::onSavedMovieSelected
                                     )
                                 } ?: run {
                                     currentScreen = Screen.LoginPage

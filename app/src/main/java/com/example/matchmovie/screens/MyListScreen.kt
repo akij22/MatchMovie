@@ -31,6 +31,7 @@ import kotlinx.coroutines.withContext
 fun MyListScreen (
     dao: FilmDAO,
     currentUser: User,
+    onMovieSelected: suspend (UserMovie) -> Unit
 ) {
 
     var userFilmList by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
@@ -64,6 +65,11 @@ fun MyListScreen (
         items(userFilmList) { movie ->
             MovieDaoItem(
                 movie = movie,
+                onMovieClick = {
+                    coroutineScope.launch {
+                        onMovieSelected(movie)
+                    }
+                },
 
                 // Definizione della function per eliminare un film dalla MyList
                 onDeleteClick = {

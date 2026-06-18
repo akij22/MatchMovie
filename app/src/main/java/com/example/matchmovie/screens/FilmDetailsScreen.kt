@@ -50,14 +50,14 @@ import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.network.dto.MovieCastMemberDto
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieCrewMemberDto
-import com.example.matchmovie.network.dto.SingleMovieResultDto
+import com.example.matchmovie.model.MovieDetailsUi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
 fun FilmDetailScreen(
-    clickedFilm: SingleMovieResultDto,
+    movie: MovieDetailsUi,
     cast: MovieCreditsDto?,
     dao: FilmDAO,
 
@@ -66,19 +66,19 @@ fun FilmDetailScreen(
     canSaveMovie: Boolean = true,
     onBackClick: () -> Unit
 ) {
-    val backdropUrl = clickedFilm.backdrop_path?.let { "https://image.tmdb.org/t/p/w780$it" }
-    val posterUrl = clickedFilm.poster_path?.let { "https://image.tmdb.org/t/p/w500$it" }
+    val backdropUrl = movie.backdropPath?.let { "https://image.tmdb.org/t/p/w780$it" }
+    val posterUrl = movie.posterPath?.let { "https://image.tmdb.org/t/p/w500$it" }
     var userRating by remember { mutableIntStateOf(0) }
     var isMovieSaved by remember { mutableStateOf(false) }
 
     // Coroutine per lanciare operazioni su DB
     val coroutineScope = rememberCoroutineScope()
 
-    LaunchedEffect(currentUser._id, clickedFilm.id) {
+    LaunchedEffect(currentUser._id, movie.id) {
         isMovieSaved = withContext(Dispatchers.IO) {
             dao.isMovieSaved(
                 userId = currentUser._id,
-                tmdbMovieId = clickedFilm.id
+                tmdbMovieId = movie.id
             )
         }
     }
@@ -99,7 +99,7 @@ fun FilmDetailScreen(
 
                     // Caricamento dell'immagine principale del film
                     model = backdropUrl ?: posterUrl,
-                    contentDescription = clickedFilm.title,
+                    contentDescription = movie.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -132,13 +132,17 @@ fun FilmDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        InfoChip(text = "★ ${String.format("%.1f", clickedFilm.vote_average)}")
-                        InfoChip(text = clickedFilm.original_language.uppercase())
-                        InfoChip(text = clickedFilm.mood.toString())
+                        movie.voteAverage?.let { voteAverage ->
+                            InfoChip(text = "★ ${String.format("%.1f", voteAverage)}")
+                        }
+                        movie.originalLanguage?.takeIf { it.isNotBlank() }?.let { originalLanguage ->
+                            InfoChip(text = originalLanguage.uppercase())
+                        }
+                        InfoChip(text = movie.mood.toString())
                     }
 
                     Text(
-                        text = clickedFilm.title,
+                        text = movie.title,
                         color = Color(0xFFF7F9FC),
                         fontSize = 38.sp,
                         lineHeight = 42.sp,
@@ -148,7 +152,7 @@ fun FilmDetailScreen(
                     )
 
                     Text(
-                        text = clickedFilm.release_date ?: "Release date not available",
+                        text = movie.releaseDate ?: "Release date not available",
                         color = Color(0xFFE1BEBF),
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -172,12 +176,24 @@ fun FilmDetailScreen(
                 )
 
                 Text(
-                    text = clickedFilm.overview?.takeIf { it.isNotBlank() }
+                    text = movie.overview?.takeIf { it.isNotBlank() }
                         ?: "No description available.",
                     color = Color(0xFFD6E0EC),
                     style = MaterialTheme.typography.bodyLarge,
                     lineHeight = 24.sp,
                     modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+        }
+
+        movie.userRating?.let { savedRating ->
+            item {
+                Text(
+                    text = "Your saved rating: $savedRating",
+                    color = Color(0xFFE1BEBF),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
             }
         }
@@ -295,15 +311,15 @@ fun FilmDetailScreen(
 	                                            // Creo un nuovo UserMovie
 	                                            UserMovie(
 	                                                userId = currentUser._id,
-	                                                tmdbMovieId = clickedFilm.id,
-	                                                title = clickedFilm.title,
-	                                                description = clickedFilm.overview ?: "",
-	                                                image = clickedFilm.poster_path ?: "",
+	                                                tmdbMovieId = movie.id,
+	                                                title = movie.title,
+	                                                description = movie.overview ?: "",
+	                                                image = movie.posterPath ?: "",
 	                                                bio = "",
 	                                                userRating = userRating,
-	                                                release_date = clickedFilm.release_date,
+	                                                release_date = movie.releaseDate,
 
-	                                                mood = clickedFilm.mood
+	                                                mood = movie.mood
 	                                            )
 	                                        )
 	                                    }
