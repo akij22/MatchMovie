@@ -1,6 +1,7 @@
 package com.example.matchmovie.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -34,6 +35,7 @@ import com.example.matchmovie.ui.theme.MatchMoviePrimary
 @Composable
 fun MovieDaoItem(
     movie: UserMovie,
+    onMovieClick: () -> Unit,
     onDeleteClick: () -> Unit
 ) {
     Card (
@@ -44,6 +46,7 @@ fun MovieDaoItem(
         modifier = Modifier
             .fillMaxWidth()
             .padding(bottom = 12.dp)
+            .clickable(onClick = onMovieClick)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
