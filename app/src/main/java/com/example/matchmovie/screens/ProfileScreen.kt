@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.matchmovie.components.MovieDaoItem
 import com.example.matchmovie.components.ProfileStatCard
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
@@ -205,6 +206,40 @@ fun ProfileScreen(
                             .fillMaxWidth()
                             .padding(horizontal = 18.dp)
                     )
+                }
+            }
+        }
+
+        item {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    text = "Film con rating maggiore",
+                    color = MatchMovieLightText,
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                topRatedMovies.take(3).chunked(2).forEach { rowMovies ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        rowMovies.forEach { movie ->
+                            MovieDaoItem(
+                                movie = movie,
+                                onMovieClick = {},
+                                onDeleteClick = {},
+
+                                // Imposto il parametro a true, cosi da rendere la Card piu piccola
+                                compact = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (rowMovies.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
                 }
             }
         }
