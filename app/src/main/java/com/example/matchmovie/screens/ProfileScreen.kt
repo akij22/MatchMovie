@@ -249,7 +249,7 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = "Statistiche",
+                    text = "Stats",
                     color = MatchMovieLightText,
                     style = MaterialTheme.typography.titleLarge
                 )
@@ -261,13 +261,13 @@ fun ProfileScreen(
                     ProfileStatCard(
                         icon = "★",
                         value = averageRating,
-                        label = "Voto Medio",
+                        label = "AVG Rating",
                         modifier = Modifier.weight(1f)
                     )
                     ProfileStatCard(
                         icon = "◈",
                         value = favoriteMood,
-                        label = "Mood Preferito",
+                        label = "Favourite Mood",
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -279,13 +279,31 @@ fun ProfileScreen(
                     ProfileStatCard(
                         icon = "▣",
                         value = highestRatedMovie,
-                        label = "Rating piu alto",
+                        label = "Highest Rating",
                         modifier = Modifier.weight(1f)
                     )
                     ProfileStatCard(
                         icon = "↺",
                         value = firstAddedMovie,
-                        label = "Primo film aggiunto",
+                        label = "First Film Added",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ProfileStatCard(
+                        icon = "☰",
+                        value = savedMovies.count().toString(),
+                        label = "number of Movies Saved",
+                        modifier = Modifier.weight(1f)
+                    )
+                    ProfileStatCard(
+                        icon = "↷",
+                        value = recentlyAddedMovies.firstOrNull()?.title ?: "-",
+                        label = "Latest Film Added",
                         modifier = Modifier.weight(1f)
                     )
                 }
