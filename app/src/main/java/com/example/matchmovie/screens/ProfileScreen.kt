@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.matchmovie.components.MovieDaoItem
 import com.example.matchmovie.components.ProfileStatCard
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
@@ -214,7 +215,41 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = "Statistiche",
+                    text = "Film con rating maggiore",
+                    color = MatchMovieLightText,
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                topRatedMovies.take(3).chunked(2).forEach { rowMovies ->
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        rowMovies.forEach { movie ->
+                            MovieDaoItem(
+                                movie = movie,
+                                onMovieClick = {},
+                                onDeleteClick = {},
+
+                                // Imposto il parametro a true, cosi da rendere la Card piu piccola
+                                compact = true,
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        if (rowMovies.size == 1) {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
+            }
+        }
+
+        item {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                Text(
+                    text = "Stats",
                     color = MatchMovieLightText,
                     style = MaterialTheme.typography.titleLarge
                 )
@@ -226,13 +261,13 @@ fun ProfileScreen(
                     ProfileStatCard(
                         icon = "★",
                         value = averageRating,
-                        label = "Voto Medio",
+                        label = "AVG Rating",
                         modifier = Modifier.weight(1f)
                     )
                     ProfileStatCard(
                         icon = "◈",
                         value = favoriteMood,
-                        label = "Mood Preferito",
+                        label = "Favourite Mood",
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -244,13 +279,31 @@ fun ProfileScreen(
                     ProfileStatCard(
                         icon = "▣",
                         value = highestRatedMovie,
-                        label = "Rating piu alto",
+                        label = "Highest Rating",
                         modifier = Modifier.weight(1f)
                     )
                     ProfileStatCard(
                         icon = "↺",
                         value = firstAddedMovie,
-                        label = "Primo film aggiunto",
+                        label = "First Film Added",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ProfileStatCard(
+                        icon = "☰",
+                        value = savedMovies.count().toString(),
+                        label = "number of Movies Saved",
+                        modifier = Modifier.weight(1f)
+                    )
+                    ProfileStatCard(
+                        icon = "↷",
+                        value = recentlyAddedMovies.firstOrNull()?.title ?: "-",
+                        label = "Latest Film Added",
                         modifier = Modifier.weight(1f)
                     )
                 }
