@@ -1,5 +1,6 @@
 package com.example.matchmovie.screens
 
+import android.annotation.SuppressLint
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -55,6 +56,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+@SuppressLint("SuspiciousIndentation")
 @Composable
 fun FilmDetailScreen(
     movie: MovieDetailsUi,
