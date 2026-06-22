@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.matchmovie.R
+import com.example.matchmovie.components.InfoMessage
 import com.example.matchmovie.components.MovieDaoItem
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
@@ -60,26 +61,7 @@ fun MyListScreen (
     ) {
         if (userFilmList.isEmpty()) {
             item {
-                androidx.compose.foundation.layout.Column(
-                    modifier = Modifier
-                        .fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-
-                    //Se l'utente non ha film salvati, mostro l'immagine "di fallback"
-                    Image(
-                        painter = painterResource(id = R.drawable.mylist_notfound),
-                        contentDescription = "No movies saved yet",
-                        modifier = Modifier
-                            .size(200.dp)
-                    )
-                    Text(
-                        text = "No movies saved yet",
-                        color = MatchMovieMutedText,
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
+                InfoMessage(R.drawable.mylist_notfound, "No movies saved yet")
             }
         }
 

@@ -35,6 +35,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.matchmovie.R
+import com.example.matchmovie.components.InfoMessage
 import com.example.matchmovie.enumentity.MessageSender
 import com.example.matchmovie.model.ChatMessage
 import com.example.matchmovie.network.RetrofitInstance
@@ -78,28 +79,7 @@ fun AIChatScreen(
 
             if (chatMessages.isEmpty()) {
                 item {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 120.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        //Se l'utente non ha film salvati, mostro l'immagine "di fallback"
-                        Image(
-                            painter = painterResource(id = R.drawable.ai_chat),
-                            contentDescription = "Ask for your next movie recommendation",
-                            modifier = Modifier
-                                .size(200.dp)
-                        )
-                        Text(
-                            text = "Ask for your next movie recommendation",
-                            color = MatchMovieMutedText,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    InfoMessage(R.drawable.ai_chat, "Ask for your next movie recommendation")
                 }
 
             // Renderizzo i messaggi nella chat

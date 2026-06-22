@@ -42,6 +42,8 @@ import com.example.matchmovie.ui.theme.MatchMoviePrimary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.matchmovie.R
+import com.example.matchmovie.components.InfoMessage
 import com.example.matchmovie.components.StatusMessage
 
 @Composable
@@ -87,14 +89,15 @@ fun ExploreScreen(
     ) {
         when {
             errorMessage != null -> StatusMessage(errorMessage.orEmpty())
-            currentMovie == null -> StatusMessage(
 
-                /* Se currentMovies == null, può essere che
-                * - l'utente non abbia film salvati --> mostro popularMovies
-                * - i recommentedMovies sono terminati --> mostro avviso del termine
-                * */
-
-                if (recommendedMovies.isEmpty()) "Loading movies..." else "No more movies to explore"
+            /* Se currentMovie == null, può essere che
+            * - l'utente non abbia film salvati --> mostro popularMovies
+            * - i recommendedMovies sono terminati --> mostro avviso del termine
+            * */
+            currentMovie == null && recommendedMovies.isEmpty() -> StatusMessage("Loading movies...")
+            currentMovie == null -> InfoMessage(
+                imageRes = R.drawable.end_list,
+                message = "No more movies to explore"
             )
             else -> {
                 ExploreMovieCard(
