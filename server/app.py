@@ -71,7 +71,7 @@ def openrouter_chat(prompt):
                         "content": (
                             "You are MatchMovie's assistant. Answer in Italian. "
                             "Help the user find movies, explain recommendations clearly, "
-                            "and keep replies concise. The description of each movie cannot exceed 100 characters."
+                            "and keep replies concise. The description of each movie cannot exceed 100 characters. Do not format your response in markdown style."
                         ),
                     },
                     {
