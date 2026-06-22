@@ -1,13 +1,16 @@
 package com.example.matchmovie.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,7 +29,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.matchmovie.R
 import com.example.matchmovie.enumentity.MessageSender
 import com.example.matchmovie.model.ChatMessage
 import com.example.matchmovie.network.RetrofitInstance
@@ -69,13 +77,26 @@ fun AIChatScreen(
         ) {
             if (chatMessages.isEmpty()) {
                 item {
-                    Box(
-                        modifier = Modifier.fillMaxWidth(),
-                        contentAlignment = Alignment.Center
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 120.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
+                        //Se l'utente non ha film salvati, mostro l'immagine "di fallback"
+                        Image(
+                            painter = painterResource(id = R.drawable.ai_chat),
+                            contentDescription = "Ask for your next movie recommendation",
+                            modifier = Modifier
+                                .size(200.dp)
+                        )
                         Text(
                             text = "Ask for your next movie recommendation",
-                            color = MatchMovieMutedText
+                            color = MatchMovieMutedText,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
