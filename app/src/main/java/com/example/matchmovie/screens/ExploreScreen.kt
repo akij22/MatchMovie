@@ -88,6 +88,12 @@ fun ExploreScreen(
         when {
             errorMessage != null -> StatusMessage(errorMessage.orEmpty())
             currentMovie == null -> StatusMessage(
+
+                /* Se currentMovies == null, può essere che
+                * - l'utente non abbia film salvati --> mostro popularMovies
+                * - i recommentedMovies sono terminati --> mostro avviso del termine
+                * */
+
                 if (recommendedMovies.isEmpty()) "Loading movies..." else "No more movies to explore"
             )
             else -> {
