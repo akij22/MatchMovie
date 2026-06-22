@@ -75,6 +75,7 @@ fun AIChatScreen(
                 .padding(bottom = 92.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+
             if (chatMessages.isEmpty()) {
                 item {
                     Column(
