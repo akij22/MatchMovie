@@ -65,6 +65,8 @@ fun MyListScreen (
                         .fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
+
+                    //Se l'utente non ha film salvati, mostro l'immagine "di fallback"
                     Image(
                         painter = painterResource(id = R.drawable.mylist_notfound),
                         contentDescription = "No movies saved yet",
