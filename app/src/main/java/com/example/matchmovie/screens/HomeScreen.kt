@@ -53,6 +53,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.matchmovie.components.MovieResultItem
 import com.example.matchmovie.components.MovieCard
+import com.example.matchmovie.components.StatusMessage
 import com.example.matchmovie.enumentity.MovieMood
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -71,8 +72,8 @@ fun HomeScreen(
     var upComingMovies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
 
     var isRefreshing by remember { mutableStateOf(false) }
-    var isLoadingPopularMovies by remember { mutableStateOf(false) }
-    var isLoadingUpcomingMovies by remember { mutableStateOf(false) }
+    var isLoadingPopularMovies by remember { mutableStateOf(true) }
+    var isLoadingUpcomingMovies by remember { mutableStateOf(true) }
     var refreshError by remember { mutableStateOf<String?>(null) }
     var popularMoviesError by remember { mutableStateOf<String?>(null) }
     var upcomingMoviesError by remember { mutableStateOf<String?>(null) }
@@ -312,77 +313,67 @@ fun HomeScreen(
 
             // Finchè l'utente non ricerca un film, mostro quelli popolari
             if (!hasSubmittedSearch) {
-                featuredMovie?.let { movie ->
+                if (isLoadingPopularMovies || isLoadingUpcomingMovies) {
+
+                    // Mostro messaggio informativo durante il caricamento dei dati
                     item {
-                        // Renderizzo il film in primo piano nella parte alta della SearchScreen
-                        FeaturedMovieCard(
-                            movie = movie,
+                        StatusMessage("Loading movies...",
+                            modifier = Modifier.fillParentMaxSize()
+                        )
+                    }
+                } else {
+                    featuredMovie?.let { movie ->
+                        item {
+                            // Renderizzo il film in primo piano nella parte alta della SearchScreen
+                            FeaturedMovieCard(
+                                movie = movie,
+                                onMovieSelected = { selectedMovie ->
+                                    onMovieSelected(selectedMovie, false)
+                                }
+                            )
+                        }
+                    }
+
+                    item {
+                        // Renderizzo la lista di films popolari ottenuti dall'API
+                        MovieSection(
+                            title = "Popular films",
+                            movies = popularMovies,
                             onMovieSelected = { selectedMovie ->
                                 onMovieSelected(selectedMovie, false)
                             }
                         )
                     }
-                }
 
-                item {
-                    // Renderizzo la lista di films popolari ottenuti dall'API
-                    MovieSection(
-                        title = "Popular films",
-                        movies = popularMovies,
-                        onMovieSelected = { selectedMovie ->
-                            onMovieSelected(selectedMovie, false)
+                    popularMoviesError?.let { error ->
+                        item {
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
-                    )
-                }
+                    }
 
-                if (isLoadingPopularMovies && popularMovies.isEmpty()) {
                     item {
-                        Text(
-                            text = "Loading popular movies...",
-                            color = Color(0xFFE1BEBF),
-                            style = MaterialTheme.typography.bodyMedium
+                        // Renderizzo la lista di films in arrivo ottenuti dall'API
+                        UpcomingMovieSection(
+                            title = "Available soon",
+                            movies = upComingMovies,
+                            onMovieSelected = { selectedMovie ->
+                                onMovieSelected(selectedMovie, true)
+                            }
                         )
                     }
-                }
 
-                popularMoviesError?.let { error ->
-                    item {
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-
-                item {
-                    // Renderizzo la lista di films in arrivo ottenuti dall'API
-                    UpcomingMovieSection(
-                        title = "Available soon",
-                        movies = upComingMovies,
-                        onMovieSelected = { selectedMovie ->
-                            onMovieSelected(selectedMovie, true)
+                    upcomingMoviesError?.let { error ->
+                        item {
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
                         }
-                    )
-                }
-
-                if (isLoadingUpcomingMovies && upComingMovies.isEmpty()) {
-                    item {
-                        Text(
-                            text = "Loading upcoming movies...",
-                            color = Color(0xFFE1BEBF),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-
-                upcomingMoviesError?.let { error ->
-                    item {
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
                     }
                 }
             } else {
@@ -447,7 +438,7 @@ private fun HomeSearchBar(
                     // Se non c'è alcuna ricerca nel TextField, mostro placeholder
                     if (value.isBlank()) {
                         Text(
-                            text = "Found films...",
+                            text = "Find films...",
                             color = Color(0x80E1BEBF),
                             style = MaterialTheme.typography.bodyMedium
                         )
