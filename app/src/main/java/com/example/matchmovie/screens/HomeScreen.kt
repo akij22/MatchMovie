@@ -447,7 +447,7 @@ private fun HomeSearchBar(
                     // Se non c'è alcuna ricerca nel TextField, mostro placeholder
                     if (value.isBlank()) {
                         Text(
-                            text = "Cerca film...",
+                            text = "Found films...",
                             color = Color(0x80E1BEBF),
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -470,7 +470,7 @@ private fun HomeSearchBar(
             )
         ) {
             Text(
-                text = if (isSearching) "..." else "Cerca",
+                text = if (isSearching) "..." else "Search",
                 fontWeight = FontWeight.Bold
             )
         }
@@ -529,7 +529,7 @@ private fun FeaturedMovieCard(
                 .padding(18.dp)
         ) {
             Text(
-                text = "Ultima uscita",
+                text = "Latest release",
                 color = Color(0xFF70F8E8),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,

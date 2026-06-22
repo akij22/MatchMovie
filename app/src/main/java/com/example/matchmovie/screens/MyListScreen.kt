@@ -1,9 +1,11 @@
 package com.example.matchmovie.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
@@ -15,8 +17,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.matchmovie.R
 import com.example.matchmovie.components.MovieDaoItem
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
@@ -53,11 +60,24 @@ fun MyListScreen (
     ) {
         if (userFilmList.isEmpty()) {
             item {
-                Text(
-                    text = "No movies saved yet",
-                    color = MatchMovieMutedText,
-                    style = MaterialTheme.typography.bodySmall
-                )
+                androidx.compose.foundation.layout.Column(
+                    modifier = Modifier
+                        .fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.mylist_notfound),
+                        contentDescription = "No movies saved yet",
+                        modifier = Modifier
+                            .size(200.dp)
+                    )
+                    Text(
+                        text = "No movies saved yet",
+                        color = MatchMovieMutedText,
+                        fontSize = 22.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
         }
 

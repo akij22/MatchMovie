@@ -215,7 +215,7 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = "Film con rating maggiore",
+                    text = "Films with best rating",
                     color = MatchMovieLightText,
                     style = MaterialTheme.typography.titleLarge
                 )
