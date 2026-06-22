@@ -1,13 +1,16 @@
 package com.example.matchmovie.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,7 +29,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.matchmovie.R
 import com.example.matchmovie.enumentity.MessageSender
 import com.example.matchmovie.model.ChatMessage
 import com.example.matchmovie.network.RetrofitInstance
@@ -67,16 +75,33 @@ fun AIChatScreen(
                 .padding(bottom = 92.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+
             if (chatMessages.isEmpty()) {
                 item {
                     Box(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 120.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "Ask for your next movie recommendation",
-                            color = MatchMovieMutedText
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.ic_launcher_foreground),
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(120.dp)
+                                    .alpha(0.5f)
+                            )
+                            Text(
+                                text = "Ask for movie recommendation.",
+                                color = MatchMovieMutedText,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
 
