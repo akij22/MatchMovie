@@ -2,8 +2,11 @@ import os
 import re
 
 import requests
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from werkzeug.security import check_password_hash, generate_password_hash
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -13,7 +16,7 @@ TMDB_TOKEN = os.environ.get("TMDB_TOKEN")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 # Definizione del modello da utilizzare per rispondere alle richieste
-OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "nex-agi/nex-n2-pro:free")
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "openrouter/owl-alpha")
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -69,9 +72,10 @@ def openrouter_chat(prompt):
                         "role": "system",
                         # Mantengo la descrizione di ogni film corta, per non andare oltre il contenuto del messaggio consentito lato UI
                         "content": (
-                            "You are MatchMovie's assistant. Answer in Italian. "
-                            "Help the user find movies, explain recommendations clearly, "
-                            "and keep replies concise. The description of each movie cannot exceed 100 characters. Do not format your response in markdown style."
+                            "You are MatchMovie's assistant. Reply in the same language in which the question was asked."
+                            "Help the user find movies, explain recommendations clearly, and keep replies concise. "
+                            "The description of each movie cannot exceed 100 characters. "
+                            "IMPORTANT: do not format your response in markdown style (so don't use '**<text>**' for bold, use plain text instead)."
                         ),
                     },
                     {
