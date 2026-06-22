@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.example.matchmovie.database.FilmDatabase
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.components.MatchMovieTitle
 import com.example.matchmovie.enumentity.Screen
 import com.example.matchmovie.model.ChatMessage
 import com.example.matchmovie.model.MovieDetailsUi
@@ -165,17 +166,29 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     ) { innerPadding ->
-                        Box(
+                        Column(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(innerPadding)
                         ) {
+
+                            // Mostro il Composable per il titolo dell'app, tranne per FilmDetailsScreen e LoginScreen
+                            if (currentScreen != Screen.FilmDetailsScreen && currentScreen != Screen.LoginPage)
+                                MatchMovieTitle()
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .weight(1f)
+                            ) {
 
                             // Definisco la schermata da mostrare, associandola ad ogni enum
                             // della classe `Screen`
                             if (!isAuthLoaded) {
                                 PlaceholderScreen(title = "Loading")
                             } else {
+
+                                // In base allo state `currentScreen`, mostro la rispettiva schermata
                                 when(currentScreen) {
                                     Screen.LoginPage -> LoginScreen(
                                         dao = dao,
@@ -184,6 +197,8 @@ class MainActivity : ComponentActivity() {
                                             currentScreen = Screen.HomeScreen
                                         }
                                     )
+
+
                                 Screen.HomeScreen -> HomeScreen(
                                     dao,
                                     ::onMovieSelected
@@ -263,6 +278,7 @@ class MainActivity : ComponentActivity() {
                                 }
                                 }
                             }
+                        }
                         }
                     }
                 }
