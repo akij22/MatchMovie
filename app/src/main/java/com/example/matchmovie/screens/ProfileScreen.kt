@@ -109,11 +109,17 @@ fun ProfileScreen(
         ?.let { rating -> String.format("%.1f/5", rating) }
         ?: "0.0/5"
 
-    val favoriteMood = moviesByMood
+    var favoriteMood = moviesByMood
         .maxByOrNull { entry -> entry.value.size }
         ?.key
         ?.name
         ?: "-"
+
+
+    // Se mood è NOT_SPECIFIED, assegno un'apposita stringa
+    if (favoriteMood == "NOT_SPECIFIED")
+        favoriteMood = "Not Specified"
+
 
     val highestRatedMovie = topRatedMovies.firstOrNull()?.title ?: "-"
     val firstAddedMovie = savedMovies.minByOrNull { movie -> movie._id }?.title ?: "-"
