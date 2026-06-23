@@ -625,8 +625,8 @@ private fun FeaturedMovieCard(
                 },
                 shape = RoundedCornerShape(50),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2EC4B6),
-                    contentColor = Color(0xFF0C141C)
+                    containerColor = Color(0xFFE84A5F),
+                    contentColor = Color.White
                 ),
                 contentPadding = PaddingValues(horizontal = 22.dp, vertical = 12.dp)
             ) {
