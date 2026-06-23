@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
@@ -29,11 +29,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.example.matchmovie.database.FilmDatabase
 import com.example.matchmovie.database.User
@@ -60,6 +57,7 @@ import com.example.matchmovie.ui.theme.MatchMovieTheme
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.matchmovie.components.MatchMovieBottomBar
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -185,7 +183,7 @@ class MainActivity : ComponentActivity() {
                             // Definisco la schermata da mostrare, associandola ad ogni enum
                             // della classe `Screen`
                             if (!isAuthLoaded) {
-                                PlaceholderScreen(title = "Loading")
+                                PlaceholderScreen()
                             } else {
 
                                 // In base allo state `currentScreen`, mostro la rispettiva schermata
@@ -296,206 +294,11 @@ private fun Screen.isBottomTab(): Boolean {
 }
 
 
-// Data class di supporto per la bottom bar
-private data class BottomBarItem(
-    val screen: Screen,
-    val label: String,
-    val icon: BottomBarIcon
-)
-
-private enum class BottomBarIcon {
-    Search,
-    Explore,
-    Profile,
-    MyList,
-    Chat
-}
-
-
-// Composable per la creazione di una bottom bar
-@Composable
-private fun MatchMovieBottomBar(
-    currentScreen: Screen,
-    onTabSelected: (Screen) -> Unit
-) {
-    val items = listOf(
-        BottomBarItem(Screen.HomeScreen, "Home", BottomBarIcon.Search),
-        BottomBarItem(Screen.ExploreScreen, "Explore", BottomBarIcon.Explore),
-        BottomBarItem(Screen.MyListScreen, "MyList", BottomBarIcon.MyList),
-        BottomBarItem(Screen.ChatScreen, "AI Chat", BottomBarIcon.Chat),
-        BottomBarItem(Screen.ProfileScreen, "Profile", BottomBarIcon.Profile)
-    )
-
-    NavigationBar(
-        modifier = Modifier.clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-        containerColor = MatchMovieCard,
-        tonalElevation = 8.dp
-    ) {
-        items.forEach { item ->
-
-            // Individuo la schermata cliccata nella bottom bar
-            val selected = currentScreen == item.screen
-            val contentColor = if (selected) Color(0xFF5B0016) else MatchMovieMutedText
-
-            NavigationBarItem(
-                selected = selected,
-                onClick = { onTabSelected(item.screen) },
-                icon = {
-                    BottomBarIconGraphic(
-                        icon = item.icon,
-                        color = contentColor,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                label = { Text(item.label) },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = contentColor,
-                    selectedTextColor = contentColor,
-                    indicatorColor = Color(0xFFFA576B),
-                    unselectedIconColor = MatchMovieMutedText,
-                    unselectedTextColor = MatchMovieMutedText
-                )
-            )
-        }
-    }
-}
-
-
-// Composable per la creazione delle singole icone delle schermate nella bottom bar
-@Composable
-private fun BottomBarIconGraphic(
-    icon: BottomBarIcon,
-    color: Color,
-    modifier: Modifier = Modifier
-) {
-    Canvas(modifier = modifier) {
-        val stroke = Stroke(width = size.minDimension * 0.09f, cap = StrokeCap.Round)
-
-        when (icon) {
-            BottomBarIcon.Search -> {
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension * 0.28f,
-                    center = Offset(size.width * 0.43f, size.height * 0.43f),
-                    style = stroke
-                )
-                drawLine(
-                    color = color,
-                    start = Offset(size.width * 0.63f, size.height * 0.63f),
-                    end = Offset(size.width * 0.82f, size.height * 0.82f),
-                    strokeWidth = stroke.width,
-                    cap = StrokeCap.Round
-                )
-            }
-
-            BottomBarIcon.Profile -> {
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension * 0.16f,
-                    center = Offset(size.width * 0.5f, size.height * 0.32f),
-                    style = stroke
-                )
-                drawArc(
-                    color = color,
-                    startAngle = 205f,
-                    sweepAngle = 130f,
-                    useCenter = false,
-                    topLeft = Offset(size.width * 0.23f, size.height * 0.43f),
-                    size = Size(size.width * 0.54f, size.height * 0.44f),
-                    style = stroke
-                )
-            }
-
-            BottomBarIcon.Explore -> {
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension * 0.32f,
-                    center = Offset(size.width * 0.5f, size.height * 0.5f),
-                    style = stroke
-                )
-                drawLine(
-                    color = color,
-                    start = Offset(size.width * 0.5f, size.height * 0.5f),
-                    end = Offset(size.width * 0.66f, size.height * 0.32f),
-                    strokeWidth = stroke.width,
-                    cap = StrokeCap.Round
-                )
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension * 0.035f,
-                    center = Offset(size.width * 0.5f, size.height * 0.5f)
-                )
-            }
-
-            BottomBarIcon.MyList -> {
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(size.width * 0.22f, size.height * 0.18f),
-                    size = Size(size.width * 0.56f, size.height * 0.64f),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(
-                        size.minDimension * 0.06f,
-                        size.minDimension * 0.06f
-                    ),
-                    style = stroke
-                )
-                drawLine(
-                    color = color,
-                    start = Offset(size.width * 0.36f, size.height * 0.38f),
-                    end = Offset(size.width * 0.64f, size.height * 0.38f),
-                    strokeWidth = stroke.width,
-                    cap = StrokeCap.Round
-                )
-                drawLine(
-                    color = color,
-                    start = Offset(size.width * 0.36f, size.height * 0.56f),
-                    end = Offset(size.width * 0.64f, size.height * 0.56f),
-                    strokeWidth = stroke.width,
-                    cap = StrokeCap.Round
-                )
-            }
-
-            BottomBarIcon.Chat -> {
-                drawRoundRect(
-                    color = color,
-                    topLeft = Offset(size.width * 0.18f, size.height * 0.2f),
-                    size = Size(size.width * 0.64f, size.height * 0.48f),
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(
-                        size.minDimension * 0.12f,
-                        size.minDimension * 0.12f
-                    ),
-                    style = stroke
-                )
-                drawLine(
-                    color = color,
-                    start = Offset(size.width * 0.35f, size.height * 0.68f),
-                    end = Offset(size.width * 0.27f, size.height * 0.82f),
-                    strokeWidth = stroke.width,
-                    cap = StrokeCap.Round
-                )
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension * 0.035f,
-                    center = Offset(size.width * 0.38f, size.height * 0.44f)
-                )
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension * 0.035f,
-                    center = Offset(size.width * 0.5f, size.height * 0.44f)
-                )
-                drawCircle(
-                    color = color,
-                    radius = size.minDimension * 0.035f,
-                    center = Offset(size.width * 0.62f, size.height * 0.44f)
-                )
-            }
-        }
-    }
-}
 
 
 // Componente "temporaneo", per mostrare schermate placeholder in attesa del loro sviluppo
 @Composable
-private fun PlaceholderScreen(title: String) {
+private fun PlaceholderScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -505,7 +308,7 @@ private fun PlaceholderScreen(title: String) {
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = title,
+                text = "Loading",
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.titleLarge
             )
