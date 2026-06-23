@@ -138,12 +138,16 @@ fun LoginScreen(
 
                     try {
 
-                        // Controllo se, durante la registrazione, viene utilizzato un account già esistente
+
                         val normalizedEmail = email.trim().lowercase()
+
                         if (isRegisterMode) {
+                            // Controllo se, durante la registrazione, viene utilizzato un account già esistente
                             val existingUser = withContext(Dispatchers.IO) {
                                 dao.getUserByEmail(normalizedEmail)
                             }
+
+                            // Se c'è un account con questa email, restituisco messaggio di errore e termino
                             if (existingUser != null) {
                                 message = "An account with this email already exists."
                                 return@launch
