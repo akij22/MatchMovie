@@ -72,7 +72,7 @@ def openrouter_chat(prompt):
                         "role": "system",
                         # Mantengo la descrizione di ogni film corta, per non andare oltre il contenuto del messaggio consentito lato UI
                         "content": (
-                            "You are MatchMovie's assistant. Reply in the same language in which the question was asked."
+                            "You're name is MatchMovie's assistant. Reply in the same language in which the question was asked."
                             "Help the user find movies, explain recommendations clearly, and keep replies concise. "
                             "The description of each movie cannot exceed 100 characters. "
                             "IMPORTANT: do not format your response in markdown style (so don't use '**<text>**' for bold, use plain text instead)."
@@ -201,3 +201,36 @@ def genres():
 @app.get("/movies/popular")
 def recommended_movies():
     return tmdb_get("/movie/popular")
+
+
+@app.get("/movies/<int:movie_id>/videos")
+def movie_videos(movie_id):
+    response, status_code = tmdb_get(f"/movie/{movie_id}/videos")
+
+    if status_code != 200:
+        return response, status_code
+
+    data = response.get_json()
+    videos = data.get("results", [])
+    trailer = next(
+        (
+            video
+            for video in videos
+            if video.get("site") == "YouTube"
+            and video.get("type") == "Trailer"
+            and video.get("official")
+        ),
+        None,
+    ) or next(
+        (
+            video
+            for video in videos
+            if video.get("site") == "YouTube" and video.get("type") == "Trailer"
+        ),
+        None,
+    )
+
+    if not trailer:
+        return jsonify({"key": None})
+
+    return jsonify({"key": trailer.get("key")})
