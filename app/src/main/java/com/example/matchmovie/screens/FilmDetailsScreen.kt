@@ -1,6 +1,7 @@
 package com.example.matchmovie.screens
 
 import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -56,7 +57,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-@SuppressLint("SuspiciousIndentation")
 @Composable
 fun FilmDetailScreen(
     movie: MovieDetailsUi,
@@ -75,6 +75,13 @@ fun FilmDetailScreen(
 
     // Coroutine per lanciare operazioni su DB
     val coroutineScope = rememberCoroutineScope()
+
+
+    // Gestisco il back click mediante Composable apposito
+    // Richiamo la funzione già esistente `onBackClick()` per tornare alla schermata precedente
+    BackHandler(enabled = true) {
+        onBackClick()
+    }
 
     LaunchedEffect(currentUser._id, movie.id) {
         isMovieSaved = withContext(Dispatchers.IO) {
