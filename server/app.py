@@ -127,27 +127,27 @@ def search_movies():
             }
         )
 
-    return tmdb_get("/search/movie", {"query": query})
+    return tmdb_get_method("/search/movie", {"query": query})
 
 
 @app.get("/movies/popular")
 def popular_movies():
-    return tmdb_get("/movie/popular")
+    return tmdb_get_method("/movie/popular")
 
 
 @app.get("/movies/upcoming")
 def upcoming_movies():
-    return tmdb_get("/movie/upcoming")
+    return tmdb_get_method("/movie/upcoming")
 
 
 @app.get("/movies/<int:movie_id>/credits")
 def movie_credits(movie_id):
-    return tmdb_get(f"/movie/{movie_id}/credits")
+    return tmdb_get_method(f"/movie/{movie_id}/credits")
 
 
 @app.get("/movies/<int:movie_id>/recommendations")
 def movie_recommendations(movie_id):
-    return tmdb_get(f"/movie/{movie_id}/recommendations")
+    return tmdb_get_method(f"/movie/{movie_id}/recommendations")
 
 
 @app.post("/chat")
@@ -209,12 +209,12 @@ def health():
 # Endpoint per il recupero di tutti i generi possibili per un film
 @app.get("/genres")
 def genres():
-    return tmdb_get("/genre/movie/list")
+    return tmdb_get_method("/genre/movie/list")
 
 
 @app.get("/movies/<int:movie_id>/videos")
 def movie_videos(movie_id):
-    response, status_code = tmdb_get(f"/movie/{movie_id}/videos")
+    response, status_code = tmdb_get_method(f"/movie/{movie_id}/videos")
 
     if status_code != 200:
         return response, status_code
