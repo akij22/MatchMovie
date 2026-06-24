@@ -48,7 +48,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.R
 import coil3.compose.AsyncImage
+import com.example.matchmovie.components.InfoMessage
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.SingleMovieResultDto
@@ -333,6 +335,7 @@ fun HomeScreen(
 
             // Finchè l'utente non ricerca un film, mostro quelli popolari
             if (!hasSubmittedSearch) {
+
                 if (isLoadingPopularMovies || isLoadingUpcomingMovies) {
 
                     // Mostro messaggio informativo durante il caricamento dei dati
@@ -434,7 +437,7 @@ fun HomeScreen(
                         }
                     }
                 }
-            } else {
+            } else if (movies.isNotEmpty()) {
                 // Renderizzo la lista di films ottenuti dall'API solo nel momento in cui l'utente invia la ricerca
                 items(movies) { movie ->
                     MovieResultItem(
@@ -442,6 +445,13 @@ fun HomeScreen(
                         onMovieSelected = { selectedMovie ->
                             onMovieSelected(selectedMovie, false)
                         }
+                    )
+                }
+            } else {
+                item {
+                    InfoMessage(
+                        imageRes = com.example.matchmovie.R.drawable.not_found,
+                        "No film matches the search..."
                     )
                 }
             }
