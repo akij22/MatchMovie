@@ -42,6 +42,9 @@ import com.example.matchmovie.ui.theme.MatchMoviePrimary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.matchmovie.R
+import com.example.matchmovie.components.InfoMessage
+import com.example.matchmovie.components.StatusMessage
 
 @Composable
 fun ExploreScreen(
@@ -65,7 +68,10 @@ fun ExploreScreen(
             recommendedMovies = loadRecommendedMovies(
                 dao = dao,
                 userId = currentUser._id
-            )
+            // Mescolo la lista ad ogni caricamwento, in modo da renderla più variabile
+            ).shuffled()
+
+
         } catch (e: Exception) {
             errorMessage = "Unable to load recommended movies, please try again."
         }
@@ -82,9 +88,16 @@ fun ExploreScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         when {
-            errorMessage != null -> ExploreMessage(errorMessage.orEmpty())
-            currentMovie == null -> ExploreMessage(
-                if (recommendedMovies.isEmpty()) "Loading movies..." else "No more movies to explore"
+            errorMessage != null -> StatusMessage(errorMessage.orEmpty())
+
+            /* Se currentMovie == null, può essere che
+            * - l'utente non abbia film salvati --> mostro popularMovies
+            * - i recommendedMovies sono terminati --> mostro avviso del termine
+            * */
+            currentMovie == null && recommendedMovies.isEmpty() -> StatusMessage("Loading movies...")
+            currentMovie == null -> InfoMessage(
+                imageRes = R.drawable.end_list,
+                message = "No more movies to explore"
             )
             else -> {
                 ExploreMovieCard(
@@ -224,16 +237,3 @@ private fun ExploreActionButton(
     }
 }
 
-@Composable
-private fun ExploreMessage(message: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = message,
-            color = MatchMovieMutedText,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}

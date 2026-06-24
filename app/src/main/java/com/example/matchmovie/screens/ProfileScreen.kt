@@ -15,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
@@ -57,7 +56,6 @@ fun ProfileScreen(
 ) {
 
     var savedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
-    var movieMoods by remember { mutableStateOf<List<MovieMood>>(emptyList()) }
     var moviesByMood by remember { mutableStateOf<Map<MovieMood, List<UserMovie>>>(emptyMap()) }
     var topRatedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
     var recentlyAddedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
@@ -71,9 +69,6 @@ fun ProfileScreen(
                 dao.getMoviesByUser(currentUser._id)
             }
             savedMovies = loadedMovies
-
-            // Lista dei mood associati ai film salvati dall'utente
-            movieMoods = loadedMovies.map { movie -> movie.mood }
 
             // Liste separate per mood
             moviesByMood = loadedMovies.groupBy { movie -> movie.mood }
@@ -92,7 +87,6 @@ fun ProfileScreen(
                 .take(5)
         } catch (e: Exception) {
             savedMovies = emptyList()
-            movieMoods = emptyList()
             moviesByMood = emptyMap()
             topRatedMovies = emptyList()
             recentlyAddedMovies = emptyList()
@@ -109,11 +103,17 @@ fun ProfileScreen(
         ?.let { rating -> String.format("%.1f/5", rating) }
         ?: "0.0/5"
 
-    val favoriteMood = moviesByMood
+    var favoriteMood = moviesByMood
         .maxByOrNull { entry -> entry.value.size }
         ?.key
         ?.name
         ?: "-"
+
+
+    // Se mood è NOT_SPECIFIED, assegno un'apposita stringa
+    if (favoriteMood == "NOT_SPECIFIED")
+        favoriteMood = "Not Specified"
+
 
     val highestRatedMovie = topRatedMovies.firstOrNull()?.title ?: "-"
     val firstAddedMovie = savedMovies.minByOrNull { movie -> movie._id }?.title ?: "-"
@@ -215,7 +215,7 @@ fun ProfileScreen(
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 Text(
-                    text = "Film con rating maggiore",
+                    text = "Films with best rating",
                     color = MatchMovieLightText,
                     style = MaterialTheme.typography.titleLarge
                 )

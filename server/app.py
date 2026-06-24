@@ -2,8 +2,11 @@ import os
 import re
 
 import requests
+from dotenv import load_dotenv
 from flask import Flask, jsonify, request
 from werkzeug.security import check_password_hash, generate_password_hash
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -13,7 +16,7 @@ TMDB_TOKEN = os.environ.get("TMDB_TOKEN")
 OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 # Definizione del modello da utilizzare per rispondere alle richieste
-OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "nex-agi/nex-n2-pro:free")
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "openrouter/owl-alpha")
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
@@ -75,9 +78,10 @@ def openrouter_chat(prompt):
                         "role": "system",
                         # Mantengo la descrizione di ogni film corta, per non andare oltre il contenuto del messaggio consentito lato UI
                         "content": (
-                            "You are MatchMovie's assistant. Answer in Italian. "
-                            "Help the user find movies, explain recommendations clearly, "
-                            "and keep replies concise. The description of each movie cannot exceed 100 characters."
+                            "Your name is MatchMovie's assistant. Reply in the same language in which the question was asked."
+                            "Help the user find movies, explain recommendations clearly, and keep replies concise. "
+                            "The description of each movie cannot exceed 100 characters. "
+                            "IMPORTANT: do not format your response in markdown style (so don't use '**<text>**' for bold, use plain text instead)."
                         ),
                     },
                     {
@@ -164,10 +168,14 @@ def register():
     if error_response:
         return error_response, status_code
 
+    if payload is None:
+        return jsonify({"error": "Invalid payload; payload is required"}), 400
+
     return jsonify(
         {
             "name": payload["name"],
             "email": payload["email"],
+            # Genero l'hash della password, che verrà successivamente salvato nel campo 'password' di User entity
             "passwordHash": generate_password_hash(payload["password"]),
         }
     )
@@ -180,12 +188,15 @@ def login():
     password = data.get("password") or ""
     password_hash = data.get("passwordHash") or ""
 
+    # Controllo la presenza dei campi necessari
     if not email or not password or not password_hash:
         return jsonify({"error": "email, password and passwordHash are required"}), 400
 
+    # Verifico la corrispondenza tra il hash e la password (con funzione apposita)
     if not check_password_hash(password_hash, password):
         return jsonify({"authenticated": False, "error": "Invalid credentials"}), 401
 
+    # Se corrispondono, restituisco l'autenticazione riuscita
     return jsonify({"authenticated": True, "email": email})
 
 
@@ -200,6 +211,34 @@ def genres():
     return tmdb_get("/genre/movie/list")
 
 
-@app.get("/movies/popular")
-def recommended_movies():
-    return tmdb_get("/movie/popular")
+@app.get("/movies/<int:movie_id>/videos")
+def movie_videos(movie_id):
+    response, status_code = tmdb_get(f"/movie/{movie_id}/videos")
+
+    if status_code != 200:
+        return response, status_code
+
+    data = response.get_json()
+    videos = data.get("results", [])
+    trailer = next(
+        (
+            video
+            for video in videos
+            if video.get("site") == "YouTube"
+            and video.get("type") == "Trailer"
+            and video.get("official")
+        ),
+        None,
+    ) or next(
+        (
+            video
+            for video in videos
+            if video.get("site") == "YouTube" and video.get("type") == "Trailer"
+        ),
+        None,
+    )
+
+    if not trailer:
+        return jsonify({"key": None})
+
+    return jsonify({"key": trailer.get("key")})
