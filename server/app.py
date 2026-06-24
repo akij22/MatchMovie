@@ -40,7 +40,7 @@ def validate_auth_payload(data):
     return {"name": name, "email": email, "password": password}, None, None
 
 
-def tmdb_get(path, params=None):
+def tmdb_get_method(path, params=None):
     if not TMDB_TOKEN:
         return jsonify({"error": "TMDB_TOKEN environment variable is not set"}), 500
 
