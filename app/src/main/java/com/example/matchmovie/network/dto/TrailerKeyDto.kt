@@ -1,5 +1,5 @@
 package com.example.matchmovie.network.dto
 
-class TrailerKeyDto (
+data class TrailerKeyDto (
     val key: String?
 )
