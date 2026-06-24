@@ -24,12 +24,18 @@ def validate_auth_payload(data):
     name = (data.get("name") or "").strip()
     email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
+    confirm_password = data.get("confirmPassword") or ""
 
     if not email or not EMAIL_PATTERN.match(email):
         return None, jsonify({"error": "A valid email is required"}), 400
 
+    # Se la password non rispetta i criteri minimi (lunghezza almeno 6 caratteri), restituisco errore
     if len(password) < 6:
         return None, jsonify({"error": "Password must be at least 6 characters"}), 400
+
+    # Controllo che la password e la conferma di essa corrispondano (anche lato backend, per evitare errori se chiamata al server è eseguita lato Postman / curl / ...)
+    if password != confirm_password:
+        return None, jsonify({"error": "Passwords do not match"}), 400
 
     return {"name": name, "email": email, "password": password}, None, None
 

@@ -58,6 +58,7 @@ fun LoginScreen(
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var isLoading by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
@@ -119,6 +120,19 @@ fun LoginScreen(
             isPassword = true,
         )
 
+
+        // Se utente è in fase di registrazione, mostro anche il campo per ripetere la password
+        if (isRegisterMode) {
+            Spacer(modifier = Modifier.height(12.dp))
+            AuthTextField(
+                value = confirmPassword,
+                onValueChange = { confirmPassword = it },
+                label = "Confirm Password",
+                keyboardType = KeyboardType.Password,
+                isPassword = true,
+            )
+        }
+
         message?.let {
             Spacer(modifier = Modifier.height(12.dp))
             Text(
@@ -142,7 +156,13 @@ fun LoginScreen(
                         val normalizedEmail = email.trim().lowercase()
 
                         if (isRegisterMode) {
-                            // Controllo se, durante la registrazione, viene utilizzato un account già esistente
+
+                            // Se password e confirmPassword differiscono, segnalo errore
+                            if (password != confirmPassword) {
+                                message = "Passwords do not match."
+                                return@launch
+                            }
+
                             val existingUser = withContext(Dispatchers.IO) {
                                 dao.getUserByEmail(normalizedEmail)
                             }
@@ -161,6 +181,7 @@ fun LoginScreen(
                                         name = name.trim(),
                                         email = normalizedEmail,
                                         password = password,
+                                        confirmPassword = confirmPassword,
                                     )
                                 )
                             }
@@ -223,7 +244,10 @@ fun LoginScreen(
                     }
                 }
             },
-            enabled = !isLoading && email.isNotBlank() && password.isNotBlank() && (!isRegisterMode || name.isNotBlank()),
+            enabled = !isLoading &&
+                    email.isNotBlank() &&
+                    password.isNotBlank() &&
+                    (!isRegisterMode || (name.isNotBlank() && confirmPassword.isNotBlank())),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MatchMoviePrimary,
                 contentColor = MatchMovieLightText
@@ -236,6 +260,7 @@ fun LoginScreen(
         TextButton(
             onClick = {
                 isRegisterMode = !isRegisterMode
+                confirmPassword = ""
                 message = null
             },
             modifier = Modifier.fillMaxWidth()
