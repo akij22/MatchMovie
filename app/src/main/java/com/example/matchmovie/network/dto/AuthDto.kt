@@ -4,6 +4,7 @@ data class RegisterRequestDto(
     val name: String,
     val email: String,
     val password: String,
+    val confirmPassword: String,
 )
 
 data class RegisterResponseDto(
