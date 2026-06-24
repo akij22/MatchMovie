@@ -82,6 +82,7 @@ def openrouter_chat(prompt):
                             "Help the user find movies, explain recommendations clearly, and keep replies concise. "
                             "The description of each movie cannot exceed 100 characters. "
                             "IMPORTANT: do not format your response in markdown style (so don't use '**<text>**' for bold, use plain text instead)."
+                            "IMPORTANT: if user asks about TV series, reply that they are not currently supported and suggest movies instead."
                         ),
                     },
                     {
