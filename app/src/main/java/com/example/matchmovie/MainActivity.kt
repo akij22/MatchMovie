@@ -183,7 +183,7 @@ class MainActivity : ComponentActivity() {
                             // Definisco la schermata da mostrare, associandola ad ogni enum
                             // della classe `Screen`
                             if (!isAuthLoaded) {
-                                PlaceholderScreen()
+                                LoadingScreen()
                             } else {
 
                                 // In base allo state `currentScreen`, mostro la rispettiva schermata
@@ -298,7 +298,7 @@ private fun Screen.isBottomTab(): Boolean {
 
 // Componente "temporaneo", per mostrare schermate placeholder in attesa del loro sviluppo
 @Composable
-private fun PlaceholderScreen() {
+private fun LoadingScreen() {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -311,11 +311,6 @@ private fun PlaceholderScreen() {
                 text = "Loading",
                 color = MaterialTheme.colorScheme.primary,
                 style = MaterialTheme.typography.titleLarge
-            )
-            Text(
-                text = "Placeholder",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodyMedium
             )
         }
     }
