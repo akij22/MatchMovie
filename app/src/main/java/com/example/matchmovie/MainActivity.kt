@@ -40,6 +40,7 @@ import com.example.matchmovie.enumentity.Screen
 import com.example.matchmovie.model.ChatMessage
 import com.example.matchmovie.model.MovieDetailsUi
 import com.example.matchmovie.model.toMovieDetailsUi
+import com.example.matchmovie.network.AuthToken
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.SingleMovieResultDto
@@ -97,6 +98,7 @@ class MainActivity : ComponentActivity() {
                     dao.getLoggedInUser()
                 }
                 currentUser = loggedUser
+                AuthToken.token = loggedUser?.password
 
                 // Se c'è un utente loggato, mostro la relativa schermata dei film
                 // Altrimenti, devo far eseguire il login (/ signup)
@@ -258,6 +260,7 @@ class MainActivity : ComponentActivity() {
 
                                             // "Pulisco" la sessione corrente
                                             currentUser = null
+                                            AuthToken.token = null
                                             selectedMovie = null
                                             selectedMovieCanBeSaved = true
                                             castByMovie = null

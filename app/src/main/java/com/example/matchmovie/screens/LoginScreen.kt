@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.example.matchmovie.R
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
+import com.example.matchmovie.network.AuthToken
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.LoginRequestDto
 import com.example.matchmovie.network.dto.RegisterRequestDto
@@ -186,11 +187,11 @@ fun LoginScreen(
                                 )
                             }
                             val user = User(
-                                name = response.name.ifBlank { normalizedEmail },
-                                email = response.email,
-                                password = response.passwordHash,
-                                profileImage = null,
-                                bio = null,
+                                name = response.user.name.ifBlank { normalizedEmail },
+                                email = response.user.email,
+                                password = response.token,
+                                profileImage = response.user.profileImage,
+                                bio = response.user.bio,
                                 createdAt = System.currentTimeMillis(),
                                 isLoggedIn = true,
                             )
@@ -199,17 +200,9 @@ fun LoginScreen(
                                 dao.logoutAllUsers()
                                 dao.insertUser(user)
                             }
+                            AuthToken.token = response.token
                             onAuthenticated(user.copy(_id = savedUserId.toInt()))
                         } else {
-                            val localUser = withContext(Dispatchers.IO) {
-                                dao.getUserByEmail(normalizedEmail)
-                            }
-
-                            if (localUser == null) {
-                                message = "No local account found for this email."
-                                return@launch
-                            }
-
                             val response = withContext(Dispatchers.IO) {
 
                                 // Chiamo endpoint del backend per eseguire il login
@@ -217,20 +210,33 @@ fun LoginScreen(
                                     LoginRequestDto(
                                         email = normalizedEmail,
                                         password = password,
-                                        passwordHash = localUser.password,
                                     )
                                 )
                             }
 
                             // Se l'autenticazione è andata a buon fine, imposto tutti gli altri utenti come non attivi
                             if (response.authenticated) {
-                                withContext(Dispatchers.IO) {
-                                    dao.logoutAllUsers()
+                                val authenticatedUser = User(
+                                    name = response.user.name.ifBlank { normalizedEmail },
+                                    email = response.user.email,
+                                    password = response.token,
+                                    profileImage = response.user.profileImage,
+                                    bio = response.user.bio,
+                                    createdAt = System.currentTimeMillis(),
+                                    isLoggedIn = true,
+                                )
 
-                                    // Imposto come attivo solo lo user corrente (`localUser`)
-                                    dao.setUserLoggedIn(localUser.email)
+                                val savedUserId = withContext(Dispatchers.IO) {
+                                    dao.logoutAllUsers()
+                                    dao.insertUser(authenticatedUser)
                                 }
-                                onAuthenticated(localUser.copy(isLoggedIn = true))
+
+                                withContext(Dispatchers.IO) {
+                                    // Imposto come attivo solo lo user autenticato dal backend
+                                    dao.setUserLoggedIn(response.user.email)
+                                }
+                                AuthToken.token = response.token
+                                onAuthenticated(authenticatedUser.copy(_id = savedUserId.toInt()))
                             } else {
                                 message = "Invalid credentials."
                             }
