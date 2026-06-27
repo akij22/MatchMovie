@@ -7,12 +7,12 @@ from datetime import datetime, timedelta, timezone
 import jwt
 import requests
 from dotenv import load_dotenv
-
-load_dotenv()
-
 from flask import Flask, g, jsonify, request
 from flask_cors import CORS
 from werkzeug.security import check_password_hash, generate_password_hash
+
+load_dotenv()
+
 
 from db import supabase
 
