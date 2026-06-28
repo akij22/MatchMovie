@@ -148,6 +148,14 @@ class MainActivity : ComponentActivity() {
                 )
             }
 
+            suspend fun onChatMovieSelected(movie: SingleMovieResultDto) {
+                openMovieDetails(
+                    movieDetails = movie.toMovieDetailsUi(),
+                    canBeSaved = true,
+                    backScreen = Screen.ChatScreen
+                )
+            }
+
 
             // Funzione chiamata al click su una Card presente in `MyListScreen`
             // State hoisting: muovo la funzione che modifica uno state nel Composable antenato comune ai 2
@@ -256,7 +264,8 @@ class MainActivity : ComponentActivity() {
                                                 chatMessages = chatMessages,
                                                 onChatMessagesChange = { chatMessages = it },
                                                 messagePrompt = chatMessagePrompt,
-                                                onMessagePromptChange = { chatMessagePrompt = it }
+                                                onMessagePromptChange = { chatMessagePrompt = it },
+                                                onMovieSelected = ::onChatMovieSelected
                                             )
                                             Screen.ProfileScreen -> ProfileScreen(
                                                 user = currentUser,

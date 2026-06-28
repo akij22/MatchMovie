@@ -1,4 +1,5 @@
 import functools
+import json
 import os
 import re
 import uuid
@@ -11,10 +12,10 @@ from flask import Flask, g, jsonify, request
 from flask_cors import CORS
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from db import supabase
+
 load_dotenv()
 
-
-from db import supabase
 
 app = Flask(__name__)
 CORS(app)
@@ -85,8 +86,13 @@ def require_auth(f):
 
 
 def tmdb_get_method(path, params=None):
+    data, status_code = tmdb_request_json(path, params)
+    return jsonify(data), status_code
+
+
+def tmdb_request_json(path, params=None):
     if not TMDB_TOKEN:
-        return jsonify({"error": "TMDB_TOKEN environment variable is not set"}), 500
+        return {"error": "TMDB_TOKEN environment variable is not set"}, 500
 
     response = requests.get(
         f"{TMDB_BASE_URL}{path}",
@@ -98,7 +104,74 @@ def tmdb_get_method(path, params=None):
         timeout=10,
     )
 
-    return jsonify(response.json()), response.status_code
+    return response.json(), response.status_code
+
+
+def parse_chat_recommendation_response(message_reply):
+    cleaned_reply = message_reply.strip()
+
+    if cleaned_reply.startswith("```"):
+        cleaned_reply = re.sub(r"^```(?:json)?\s*", "", cleaned_reply)
+        cleaned_reply = re.sub(r"\s*```$", "", cleaned_reply)
+
+    try:
+        response_data = json.loads(cleaned_reply)
+    except json.JSONDecodeError:
+        return message_reply, []
+
+    if not isinstance(response_data, dict):
+        return message_reply, []
+
+    visible_reply = (
+        response_data.get("messageReply")
+        or response_data.get("message")
+        or message_reply
+    )
+
+    recommended_movies = response_data.get("recommendedMovies") or []
+    movie_titles = []
+
+    for movie in recommended_movies:
+        if isinstance(movie, str):
+            title = movie.strip()
+        elif isinstance(movie, dict):
+            title = (movie.get("title") or "").strip()
+        else:
+            title = ""
+
+        if title and title not in movie_titles:
+            movie_titles.append(title)
+
+    return visible_reply, movie_titles[:5]
+
+
+def search_recommended_movies(movie_titles):
+    recommended_movies = []
+    seen_movie_ids = set()
+
+    for title in movie_titles:
+        data, status_code = tmdb_request_json(
+            "/search/movie",
+            {"query": title, "include_adult": "false"},
+        )
+
+        if status_code != 200:
+            continue
+
+        results = data.get("results", [])
+        if not results:
+            continue
+
+        movie = results[0]
+        movie_id = movie.get("id")
+
+        if movie_id in seen_movie_ids:
+            continue
+
+        seen_movie_ids.add(movie_id)
+        recommended_movies.append(movie)
+
+    return recommended_movies
 
 
 def openrouter_chat(prompt):
@@ -120,11 +193,15 @@ def openrouter_chat(prompt):
                     {
                         "role": "system",
                         "content": (
-                            "Your name is MatchMovie's assistant. Reply in the same language in which the question was asked."
+                            "Your name is MatchMovie's assistant. Reply in the same language in which the question was asked. "
                             "Help the user find movies, explain recommendations clearly, and keep replies concise. "
                             "The description of each movie cannot exceed 100 characters. "
-                            "IMPORTANT: do not format your response in markdown style (so don't use '**<text>**' for bold, use plain text instead)."
-                            "IMPORTANT: if user asks about TV series, reply that they are not currently supported and suggest movies instead."
+                            "IMPORTANT: do not format your response in markdown style (so don't use '**<text>**' for bold, use plain text instead). "
+                            "IMPORTANT: if user asks about TV series, reply that they are not currently supported and suggest movies instead. "
+                            "Return only valid JSON with this shape: "
+                            '{"messageReply":"short visible reply","recommendedMovies":[{"title":"Movie title"}]}. '
+                            "Put only movie titles in recommendedMovies, with at most 5 movies. "
+                            "If there are no movie recommendations, use an empty recommendedMovies array."
                         ),
                     },
                     {
@@ -151,8 +228,15 @@ def openrouter_chat(prompt):
     message_reply = (
         response_body.get("choices", [{}])[0].get("message", {}).get("content", "")
     )
+    visible_reply, movie_titles = parse_chat_recommendation_response(message_reply)
+    recommended_movies = search_recommended_movies(movie_titles)
 
-    return jsonify({"messageReply": message_reply})
+    return jsonify(
+        {
+            "messageReply": visible_reply,
+            "recommendedMovies": recommended_movies,
+        }
+    )
 
 
 # ---------------------------------------------------------------------------

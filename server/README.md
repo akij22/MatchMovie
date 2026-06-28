@@ -44,7 +44,8 @@ It returns the same JSON shape used by `ChatResponseDto`:
 
 ```json
 {
-  "messageReply": "..."
+  "messageReply": "...",
+  "recommendedMovies": []
 }
 ```
 
