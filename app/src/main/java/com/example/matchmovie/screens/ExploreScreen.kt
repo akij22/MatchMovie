@@ -29,6 +29,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.matchmovie.components.ExploreMovieCard
+import com.example.matchmovie.components.RatingDialog
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
@@ -54,6 +55,11 @@ fun ExploreScreen(
 
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val coroutineScope = rememberCoroutineScope()
+
+    // Film in attesa di rating dopo il click sul cuore
+    var pendingMovie by remember { mutableStateOf<SingleMovieResultDto?>(null) }
+    // Rating temporaneo selezionato dall'utente nel dialog
+    var pendingRating by remember { mutableIntStateOf(0) }
 
 
 
@@ -108,6 +114,63 @@ fun ExploreScreen(
     // film corrente da mostrare nella Card
     val currentMovie = recommendedMovies.getOrNull(currentMovieIndex)
 
+    // Dialog di rating: mostrato quando l'utente clicca sul cuore per fargli assegnare il rating del rispettivo film
+    pendingMovie?.let { movie ->
+        RatingDialog(
+            movieTitle = movie.title,
+            rating = pendingRating,
+            onRatingChange = { pendingRating = it },
+            onConfirm = {
+                coroutineScope.launch {
+                    withContext(Dispatchers.IO) {
+                        dao.insert(
+                            UserMovie(
+                                userId = currentUser._id,
+                                tmdbMovieId = movie.id,
+                                title = movie.title,
+                                description = movie.overview.orEmpty(),
+                                image = movie.poster_path,
+                                bio = "",
+                                userRating = pendingRating.coerceAtLeast(0),
+                                mood = movie.mood,
+                                release_date = movie.release_date
+                            )
+                        )
+                    }
+                    pendingMovie = null
+                    pendingRating = 0
+                    currentMovieIndex++
+                }
+            },
+            onSkip = {
+                coroutineScope.launch {
+                    withContext(Dispatchers.IO) {
+                        dao.insert(
+                            UserMovie(
+                                userId = currentUser._id,
+                                tmdbMovieId = movie.id,
+                                title = movie.title,
+                                description = movie.overview.orEmpty(),
+                                image = movie.poster_path,
+                                bio = "",
+                                userRating = 0,
+                                mood = movie.mood,
+                                release_date = movie.release_date
+                            )
+                        )
+                    }
+                    pendingMovie = null
+                    pendingRating = 0
+                    currentMovieIndex++
+                }
+            },
+            onDismiss = {
+                pendingMovie = null
+                pendingRating = 0
+            }
+        )
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -148,27 +211,9 @@ fun ExploreScreen(
                         contentColor = Color.White,
                         modifier = Modifier.weight(1f),
                         onClick = {
-                            coroutineScope.launch {
-
-                                // Al click del cuore, salvo il currentFilm nella lista dei film salvati
-                                // Passo al prossimo film nella lista
-                                withContext(Dispatchers.IO) {
-                                    dao.insert(
-                                        UserMovie(
-                                            userId = currentUser._id,
-                                            tmdbMovieId = currentMovie.id,
-                                            title = currentMovie.title,
-                                            description = currentMovie.overview.orEmpty(),
-                                            image = currentMovie.poster_path,
-                                            bio = "",
-                                            userRating = 0,
-                                            mood = currentMovie.mood,
-                                            release_date = currentMovie.release_date
-                                        )
-                                    )
-                                }
-                                currentMovieIndex++
-                            }
+                            // Apro il popup di rating invece di salvare subito
+                            pendingRating = 0
+                            pendingMovie = currentMovie
                         }
                     )
                 }
