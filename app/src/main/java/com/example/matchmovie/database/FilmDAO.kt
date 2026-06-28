@@ -18,6 +18,15 @@ interface FilmDAO{
     @Query("SELECT * FROM UserMovie WHERE userId = :userId")
     suspend fun getMoviesByUser(userId: Int): List<UserMovie>
 
+    @Query("DELETE FROM UserMovie WHERE _id = :movieId")
+    suspend fun deleteUserMovie(movieId: Int)
+
+
+    // Query per recuperare un film dato il suo id
+    // Dato lo user_id, controllo se lo stesso utente sta cercando di salvare un duplicato
+    @Query("SELECT EXISTS(SELECT 1 FROM UserMovie WHERE userId = :userId AND tmdbMovieId = :tmdbMovieId)")
+    suspend fun isMovieSaved(userId: Int, tmdbMovieId: Int): Boolean
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: User): Long
 

@@ -1,5 +1,7 @@
 package com.example.matchmovie.screens
 
+import android.annotation.SuppressLint
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -25,8 +27,10 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -48,12 +52,14 @@ import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.network.dto.MovieCastMemberDto
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieCrewMemberDto
-import com.example.matchmovie.network.dto.SingleMovieResultDto
+import com.example.matchmovie.model.MovieDetailsUi
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun FilmDetailScreen(
-    clickedFilm: SingleMovieResultDto,
+    movie: MovieDetailsUi,
     cast: MovieCreditsDto?,
     dao: FilmDAO,
 
@@ -62,12 +68,29 @@ fun FilmDetailScreen(
     canSaveMovie: Boolean = true,
     onBackClick: () -> Unit
 ) {
-    val backdropUrl = clickedFilm.backdrop_path?.let { "https://image.tmdb.org/t/p/w780$it" }
-    val posterUrl = clickedFilm.poster_path?.let { "https://image.tmdb.org/t/p/w500$it" }
+    val backdropUrl = movie.backdropPath?.let { "https://image.tmdb.org/t/p/w780$it" }
+    val posterUrl = movie.posterPath?.let { "https://image.tmdb.org/t/p/w500$it" }
     var userRating by remember { mutableIntStateOf(0) }
+    var isMovieSaved by remember { mutableStateOf(false) }
 
     // Coroutine per lanciare operazioni su DB
     val coroutineScope = rememberCoroutineScope()
+
+
+    // Gestisco il back click mediante Composable apposito
+    // Richiamo la funzione già esistente `onBackClick()` per tornare alla schermata precedente
+    BackHandler(enabled = true) {
+        onBackClick()
+    }
+
+    LaunchedEffect(currentUser._id, movie.id) {
+        isMovieSaved = withContext(Dispatchers.IO) {
+            dao.isMovieSaved(
+                userId = currentUser._id,
+                tmdbMovieId = movie.id
+            )
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -85,7 +108,7 @@ fun FilmDetailScreen(
 
                     // Caricamento dell'immagine principale del film
                     model = backdropUrl ?: posterUrl,
-                    contentDescription = clickedFilm.title,
+                    contentDescription = movie.title,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()
                 )
@@ -118,13 +141,17 @@ fun FilmDetailScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        InfoChip(text = "★ ${String.format("%.1f", clickedFilm.vote_average)}")
-                        InfoChip(text = clickedFilm.original_language.uppercase())
-                        InfoChip(text = clickedFilm.mood.toString())
+                        movie.voteAverage?.let { voteAverage ->
+                            InfoChip(text = "★ ${String.format("%.1f", voteAverage)}")
+                        }
+                        movie.originalLanguage?.takeIf { it.isNotBlank() }?.let { originalLanguage ->
+                            InfoChip(text = originalLanguage.uppercase())
+                        }
+                        InfoChip(text = movie.mood.toString())
                     }
 
                     Text(
-                        text = clickedFilm.title,
+                        text = movie.title,
                         color = Color(0xFFF7F9FC),
                         fontSize = 38.sp,
                         lineHeight = 42.sp,
@@ -134,7 +161,7 @@ fun FilmDetailScreen(
                     )
 
                     Text(
-                        text = clickedFilm.release_date ?: "Release date not available",
+                        text = movie.releaseDate ?: "Release date not available",
                         color = Color(0xFFE1BEBF),
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -158,12 +185,24 @@ fun FilmDetailScreen(
                 )
 
                 Text(
-                    text = clickedFilm.overview?.takeIf { it.isNotBlank() }
+                    text = movie.overview?.takeIf { it.isNotBlank() }
                         ?: "No description available.",
                     color = Color(0xFFD6E0EC),
                     style = MaterialTheme.typography.bodyLarge,
                     lineHeight = 24.sp,
                     modifier = Modifier.padding(top = 12.dp)
+                )
+            }
+        }
+
+        movie.userRating?.let { savedRating ->
+            item {
+                Text(
+                    text = "Your saved rating: $savedRating",
+                    color = Color(0xFFE1BEBF),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                 )
             }
         }
@@ -247,48 +286,62 @@ fun FilmDetailScreen(
                         onRatingSelected = { rating -> userRating = rating }
                     )
 
-                    Button(
 
-                        // Salvo le stelle selezionate dall'utente, per formattarle in modo differente dalle altre
-                        enabled = userRating > 0,
-                        shape = RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary,
-                            contentColor = Color.Black,
-                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(58.dp),
-
-                        // Al click, devo creare un nuovo oggetto UserMovie e salvarlo su DB
-                        onClick = {
-                            coroutineScope.launch {
-                                dao.insert(
-
-                                    // Creo un nuovo UserMovie
-                                    UserMovie(
-                                        userId = currentUser._id,
-                                        tmdbMovieId = clickedFilm.id,
-                                        title = clickedFilm.title,
-                                        description = clickedFilm.overview ?: "",
-                                        image = clickedFilm.poster_path ?: "",
-                                        bio = "",
-                                        userRating = userRating,
-                                        release_date = clickedFilm.release_date,
-
-                                        mood = clickedFilm.mood
-                                    )
-                                )
-                                onBackClick()
-                            }
-                        }
-                    ) {
+                    // Se film è gia presente sul db dell'utente loggato, non permetto il salvataggio
+                    if (isMovieSaved) {
                         Text(
-                            text = "Save",
-                            fontWeight = FontWeight.Bold
+                            text = "Film already saved in MyList",
+                            color = Color(0xFFE1BEBF),
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold
                         )
+                    } else {
+                        Button(
+
+                            // Salvo le stelle selezionate dall'utente, per formattarle in modo differente dalle altre
+                            enabled = userRating > 0,
+                            shape = RoundedCornerShape(10.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = Color.Black,
+                                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(58.dp),
+
+                            // Al click, devo creare un nuovo oggetto UserMovie e salvarlo su DB
+	                            onClick = {
+	                                coroutineScope.launch {
+	                                    withContext(Dispatchers.IO) {
+
+	                                        dao.insert(
+	                                            // Creo un nuovo UserMovie
+	                                            UserMovie(
+	                                                userId = currentUser._id,
+	                                                tmdbMovieId = movie.id,
+	                                                title = movie.title,
+	                                                description = movie.overview ?: "",
+	                                                image = movie.posterPath ?: "",
+	                                                bio = "",
+	                                                userRating = userRating,
+	                                                release_date = movie.releaseDate,
+
+	                                                mood = movie.mood
+	                                            )
+	                                        )
+	                                    }
+                                    isMovieSaved = true
+                                    onBackClick()
+                                }
+                            }
+                        ) {
+                            Text(
+                                text = "Save",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }

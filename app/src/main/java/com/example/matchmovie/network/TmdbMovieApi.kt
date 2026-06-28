@@ -9,6 +9,7 @@ import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieResponseDto
 import com.example.matchmovie.network.dto.RegisterRequestDto
 import com.example.matchmovie.network.dto.RegisterResponseDto
+import com.example.matchmovie.network.dto.TrailerKeyDto
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Path
@@ -61,5 +62,10 @@ interface TmdbMovieApi {
     suspend fun getRecommendedMovies(
         @Path("movie_id") movieId: Int
     ): MovieResponseDto
+
+    @GET("movies/{movie_id}/videos")
+    suspend fun getMovieTrailer(
+        @Path("movie_id") movieId: Int,
+    ): TrailerKeyDto
 
 }

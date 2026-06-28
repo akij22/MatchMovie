@@ -13,6 +13,12 @@ object RetrofitInstance {
     // Utilizzo di un timeout di OkHttpClient personalizzato, dato che la richiesta al
     // modello AI impiega più del temppo di timeout di default
     private val client = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            val request = chain.request().newBuilder().apply {
+                AuthToken.token?.let { header("Authorization", "Bearer $it") }
+            }.build()
+            chain.proceed(request)
+        }
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(90, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)

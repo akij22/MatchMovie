@@ -33,6 +33,7 @@ import com.example.matchmovie.components.RatingDialog
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.model.loadTopRatedUserMovies
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.SingleMovieResultDto
 import com.example.matchmovie.ui.theme.MatchMovieBackground
@@ -42,6 +43,9 @@ import com.example.matchmovie.ui.theme.MatchMoviePrimary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.matchmovie.R
+import com.example.matchmovie.components.InfoMessage
+import com.example.matchmovie.components.StatusMessage
 
 @Composable
 fun ExploreScreen(
@@ -66,45 +70,13 @@ fun ExploreScreen(
     LaunchedEffect(currentUser._id) {
         try {
 
-            val savedMovies = withContext(Dispatchers.IO) {
+            // Recupero dei film consigliati da mostrare nella schermata Explore
+            recommendedMovies = loadRecommendedMovies(
+                dao = dao,
+                userId = currentUser._id
+            // Mescolo la lista ad ogni caricamwento, in modo da renderla più variabile
+            ).shuffled()
 
-                // Recupero dei film salvati dall'utente
-                dao.getMoviesByUser(currentUser._id)
-            }
-
-            // Ottengo gli ids dei film salvati
-            val savedMovieIds = savedMovies.map { movie -> movie.tmdbMovieId }.toSet()
-
-            /*
-            * 1. Ordino i film per rating in ordine decrescente
-            * 2. Prendo i primi 5
-            * 3. Ottengo i loro ids (con `.map`)
-            * */
-            val seedMovieIds = savedMovies
-                .sortedByDescending { movie -> movie.userRating }
-                .take(5)
-                .map { movie -> movie.tmdbMovieId }
-
-            recommendedMovies = withContext(Dispatchers.IO) {
-                if (seedMovieIds.isEmpty()) {
-
-                    // Se l'utente non ha film memorizzati, uso come fallback i film popolari
-                    // TODO
-                    RetrofitInstance.api.getPopularMovies()
-                        .results
-                        .filterNot { movie -> movie.id in savedMovieIds }
-                } else {
-
-                    // Per ogni ids all'interno di `seedMovieIds`, chiamo l'endpoint per
-                    // il recupero dei film consigliati e unisco tutte le liste risultanti in una sola
-                    seedMovieIds
-                        .flatMap { movieId ->
-                            RetrofitInstance.api.getRecommendedMovies(movieId).results
-                        }
-                        .filterNot { movie -> movie.id in savedMovieIds }
-                        .distinctBy { movie -> movie.id }
-                }
-            }
 
         } catch (e: Exception) {
             errorMessage = "Unable to load recommended movies, please try again."
@@ -179,9 +151,16 @@ fun ExploreScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         when {
-            errorMessage != null -> ExploreMessage(errorMessage.orEmpty())
-            currentMovie == null -> ExploreMessage(
-                if (recommendedMovies.isEmpty()) "Loading movies..." else "No more movies to explore"
+            errorMessage != null -> StatusMessage(errorMessage.orEmpty())
+
+            /* Se currentMovie == null, può essere che
+            * - l'utente non abbia film salvati --> mostro popularMovies
+            * - i recommendedMovies sono terminati --> mostro avviso del termine
+            * */
+            currentMovie == null && recommendedMovies.isEmpty() -> StatusMessage("Loading movies...")
+            currentMovie == null -> InfoMessage(
+                imageRes = R.drawable.end_list,
+                message = "No more movies to explore"
             )
             else -> {
                 ExploreMovieCard(
@@ -222,6 +201,55 @@ fun ExploreScreen(
     }
 }
 
+
+/*
+* Funzione per:
+* 1. il recupero dei film salvati dall'utente
+* 2. Elaborazione per estrarre, mediante apposita API, possibili film da consigliare
+* */
+private suspend fun loadRecommendedMovies(
+    dao: FilmDAO,
+    userId: Int
+): List<SingleMovieResultDto> {
+    return withContext(Dispatchers.IO) {
+
+        // Recupero dei film salvati dall'utente
+        val savedMovies = dao.getMoviesByUser(userId)
+
+        // Ottengo gli ids dei film salvati
+        val savedMovieIds = savedMovies.map { movie -> movie.tmdbMovieId }.toSet()
+
+        /*
+        * 1. Ordino i film per rating in ordine decrescente
+        * 2. Prendo i primi 5
+        * 3. Ottengo i loro ids (con `.map`)
+        * */
+        val seedMovieIds = loadTopRatedUserMovies(
+            dao = dao,
+            userId = userId
+        )
+            .map { movie -> movie.tmdbMovieId }
+
+        if (seedMovieIds.isEmpty()) {
+
+            // Se l'utente non ha film memorizzati, uso come fallback i film popolari
+            RetrofitInstance.api.getPopularMovies()
+                .results
+                .filterNot { movie -> movie.id in savedMovieIds }
+        } else {
+
+            // Per ogni ids all'interno di `seedMovieIds`, chiamo l'endpoint per
+            // il recupero dei film consigliati e unisco tutte le liste risultanti in una sola
+            seedMovieIds
+                .flatMap { movieId ->
+                    RetrofitInstance.api.getRecommendedMovies(movieId).results
+                }
+                .filterNot { movie -> movie.id in savedMovieIds }
+                .distinctBy { movie -> movie.id }
+        }
+    }
+}
+
 @Composable
 private fun ExploreActionButton(
     text: String,
@@ -247,16 +275,3 @@ private fun ExploreActionButton(
     }
 }
 
-@Composable
-private fun ExploreMessage(message: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            text = message,
-            color = MatchMovieMutedText,
-            style = MaterialTheme.typography.bodyMedium
-        )
-    }
-}

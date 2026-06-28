@@ -121,7 +121,7 @@ fun MovieCard (
 
             // Mostro il banner "in arrivo" solo se si tratta della lista upComingFilms
             text = if (showReleaseDateBadge) {
-                "${movie.mood} • In arrivo"
+                "${movie.mood} • Coming soon"
             } else {
                 "${movie.mood} • $releaseYear"
             },

@@ -16,4 +16,7 @@ enum class Screen {
 
     // Contiene i dettagli di un film selezionato dall'utente, ottenuto dalla ricerca
     FilmDetailsScreen,
+
+    // Report in stile "Spotify Wrapped" con le statistiche dell'utente
+    StatsScreen,
 }

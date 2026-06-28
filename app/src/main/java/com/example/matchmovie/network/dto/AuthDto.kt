@@ -4,21 +4,29 @@ data class RegisterRequestDto(
     val name: String,
     val email: String,
     val password: String,
+    val confirmPassword: String,
 )
 
 data class RegisterResponseDto(
-    val name: String,
-    val email: String,
-    val passwordHash: String,
+    val token: String,
+    val user: AuthUserDto,
 )
 
 data class LoginRequestDto(
     val email: String,
     val password: String,
-    val passwordHash: String,
 )
 
 data class LoginResponseDto(
     val authenticated: Boolean,
-    val email: String?,
+    val token: String,
+    val user: AuthUserDto,
+)
+
+data class AuthUserDto(
+    val id: Int,
+    val name: String,
+    val email: String,
+    val profileImage: String?,
+    val bio: String?,
 )

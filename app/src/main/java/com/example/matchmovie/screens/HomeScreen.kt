@@ -1,5 +1,7 @@
 package com.example.matchmovie.screens
 
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -40,11 +43,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.core.R
 import coil3.compose.AsyncImage
+import com.example.matchmovie.components.InfoMessage
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.SingleMovieResultDto
@@ -53,10 +59,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.matchmovie.components.MovieResultItem
 import com.example.matchmovie.components.MovieCard
+import com.example.matchmovie.components.StatusMessage
 import com.example.matchmovie.enumentity.MovieMood
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.example.matchmovie.utils.YOUTUBE_BASE_URL
 
 @Composable
 fun HomeScreen(
@@ -71,18 +79,22 @@ fun HomeScreen(
     var upComingMovies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
 
     var isRefreshing by remember { mutableStateOf(false) }
-    var isLoadingPopularMovies by remember { mutableStateOf(false) }
-    var isLoadingUpcomingMovies by remember { mutableStateOf(false) }
+    var isLoadingPopularMovies by remember { mutableStateOf(true) }
+    var isLoadingUpcomingMovies by remember { mutableStateOf(true) }
     var refreshError by remember { mutableStateOf<String?>(null) }
     var popularMoviesError by remember { mutableStateOf<String?>(null) }
     var upcomingMoviesError by remember { mutableStateOf<String?>(null) }
     var filmString by remember { mutableStateOf("") }
     var hasSubmittedSearch by remember { mutableStateOf(false) }
+    var trailerUrl by remember { mutableStateOf<String?>(null)}
 
     // Mappa <ID Genre, Genre String>
     var genresById by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
 
     val coroutineScope = rememberCoroutineScope()
+
+    // Definisco il context per l'esecuzione degli intents
+    val context = LocalContext.current
 
     val todayIso = remember {
         SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
@@ -243,6 +255,17 @@ fun HomeScreen(
         }
     }
 
+    suspend fun watchFilmTrailer(filmId: Int): String? {
+        return withContext(Dispatchers.IO) {
+            val response = RetrofitInstance.api.getMovieTrailer(filmId)
+
+            response.key
+                ?.takeIf { it.isNotBlank() }
+                ?.let { YOUTUBE_BASE_URL + it }
+        }
+
+    }
+
 
     LaunchedEffect(Unit) {
         val genreNamesById = obtainGenres()
@@ -312,80 +335,109 @@ fun HomeScreen(
 
             // Finchè l'utente non ricerca un film, mostro quelli popolari
             if (!hasSubmittedSearch) {
-                featuredMovie?.let { movie ->
+
+                if (isLoadingPopularMovies || isLoadingUpcomingMovies) {
+
+                    // Mostro messaggio informativo durante il caricamento dei dati
                     item {
-                        // Renderizzo il film in primo piano nella parte alta della SearchScreen
-                        FeaturedMovieCard(
-                            movie = movie,
-                            onMovieSelected = { selectedMovie ->
-                                onMovieSelected(selectedMovie, false)
-                            }
+                        StatusMessage("Loading movies...",
+                            modifier = Modifier.fillParentMaxSize()
                         )
                     }
-                }
+                } else {
+                    featuredMovie?.let { movie ->
+                        item {
 
-                item {
-                    // Renderizzo la lista di films popolari ottenuti dall'API
-                    MovieSection(
-                        title = "Popular films",
-                        movies = popularMovies,
-                        onMovieSelected = { selectedMovie ->
-                            onMovieSelected(selectedMovie, false)
+                            // Renderizzo il film in primo piano nella parte alta della SearchScreen
+                            FeaturedMovieCard(
+                                movie = movie,
+                                onMovieSelected = { selectedMovie ->
+                                    onMovieSelected(selectedMovie, false)
+                                },
+
+
+                                // Funzione callback per il click del bottone per la riproduzione del trailer
+                                onWatchTrailer = { movieId ->
+
+                                    trailerUrl = watchFilmTrailer(movieId)
+
+                                    trailerUrl?.let {
+
+                                        // Eseguo l'intent per l'apertura di YT
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(trailerUrl))
+                                        context.startActivity(intent)
+                                    }
+                                }
+                            )
                         }
-                    )
-                }
-
-                if (isLoadingPopularMovies && popularMovies.isEmpty()) {
-                    item {
-                        Text(
-                            text = "Loading popular movies...",
-                            color = Color(0xFFE1BEBF),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
                     }
-                }
 
-                popularMoviesError?.let { error ->
                     item {
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
 
-                item {
-                    // Renderizzo la lista di films in arrivo ottenuti dall'API
-                    UpcomingMovieSection(
-                        title = "Available soon",
-                        movies = upComingMovies,
-                        onMovieSelected = { selectedMovie ->
-                            onMovieSelected(selectedMovie, true)
+                        if (popularMovies.isNotEmpty()) {
+                            // Renderizzo la lista di films popolari ottenuti dall'API
+                            MovieSection(
+                                title = "Popular films",
+                                movies = popularMovies,
+                                onMovieSelected = { selectedMovie ->
+                                    onMovieSelected(selectedMovie, false)
+                                }
+                            )
+                        } else {
+
+                            // In caso non ci siano popularMovies
+                            Text(
+                                text = "No popular movies available right now...",
+                                color = Color(0xFFE1BEBF),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
                         }
-                    )
-                }
+                    }
 
-                if (isLoadingUpcomingMovies && upComingMovies.isEmpty()) {
+                    popularMoviesError?.let { error ->
+                        item {
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
                     item {
-                        Text(
-                            text = "Loading upcoming movies...",
-                            color = Color(0xFFE1BEBF),
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+
+                        if (upComingMovies.isNotEmpty()) {
+
+                            // Renderizzo la lista di films in arrivo ottenuti dall'API
+                            UpcomingMovieSection(
+                                title = "Available soon",
+                                movies = upComingMovies,
+                                onMovieSelected = { selectedMovie ->
+                                    onMovieSelected(selectedMovie, true)
+                                }
+                            )
+
+                        // In caso non ci siano upcomingMovies
+                        } else {
+                            Text(
+                                text = "No upcoming movies available right now...",
+                                color = Color(0xFFE1BEBF),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    upcomingMoviesError?.let { error ->
+                        item {
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                 }
-
-                upcomingMoviesError?.let { error ->
-                    item {
-                        Text(
-                            text = error,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-            } else {
+            } else if (movies.isNotEmpty()) {
                 // Renderizzo la lista di films ottenuti dall'API solo nel momento in cui l'utente invia la ricerca
                 items(movies) { movie ->
                     MovieResultItem(
@@ -393,6 +445,13 @@ fun HomeScreen(
                         onMovieSelected = { selectedMovie ->
                             onMovieSelected(selectedMovie, false)
                         }
+                    )
+                }
+            } else {
+                item {
+                    InfoMessage(
+                        imageRes = com.example.matchmovie.R.drawable.not_found,
+                        "No film matches the search..."
                     )
                 }
             }
@@ -447,7 +506,7 @@ private fun HomeSearchBar(
                     // Se non c'è alcuna ricerca nel TextField, mostro placeholder
                     if (value.isBlank()) {
                         Text(
-                            text = "Cerca film...",
+                            text = "Find films...",
                             color = Color(0x80E1BEBF),
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -470,7 +529,7 @@ private fun HomeSearchBar(
             )
         ) {
             Text(
-                text = if (isSearching) "..." else "Cerca",
+                text = if (isSearching) "..." else "Search",
                 fontWeight = FontWeight.Bold
             )
         }
@@ -482,7 +541,8 @@ private fun HomeSearchBar(
 @Composable
 private fun FeaturedMovieCard(
     movie: SingleMovieResultDto,
-    onMovieSelected: suspend (SingleMovieResultDto) -> Unit
+    onMovieSelected: suspend (SingleMovieResultDto) -> Unit,
+    onWatchTrailer: suspend (Int) -> Unit
 ) {
     val coroutineScope = rememberCoroutineScope()
     val backdropUrl = movie.backdrop_path?.let { "https://image.tmdb.org/t/p/w780$it" }
@@ -495,11 +555,6 @@ private fun FeaturedMovieCard(
             .padding(bottom = 28.dp)
             .clip(RoundedCornerShape(12.dp))
             .background(Color(0xFF182029))
-            .clickable {
-                coroutineScope.launch {
-                    onMovieSelected(movie)
-                }
-            }
     ) {
         AsyncImage(
             model = backdropUrl ?: posterUrl,
@@ -511,6 +566,11 @@ private fun FeaturedMovieCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .clickable {
+                    coroutineScope.launch {
+                        onMovieSelected(movie)
+                    }
+                }
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -529,7 +589,7 @@ private fun FeaturedMovieCard(
                 .padding(18.dp)
         ) {
             Text(
-                text = "Ultima uscita",
+                text = "Latest release",
                 color = Color(0xFF70F8E8),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
@@ -564,6 +624,35 @@ private fun FeaturedMovieCard(
                 maxLines = 3,
                 overflow = TextOverflow.Ellipsis
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        onWatchTrailer(movie.id)
+                    }
+                },
+                shape = RoundedCornerShape(50),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFE84A5F),
+                    contentColor = Color.White
+                ),
+                contentPadding = PaddingValues(horizontal = 22.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    text = "▶",
+                    style = MaterialTheme.typography.titleSmall
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Text(
+                    text = "Watch trailer",
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.labelLarge
+                )
+            }
         }
     }
 }
@@ -597,6 +686,8 @@ private fun MovieSection(
     }
 }
 
+
+// Composable per la sezione dei film in uscita
 @Composable
 private fun UpcomingMovieSection(
     title: String,

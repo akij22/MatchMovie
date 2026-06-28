@@ -29,6 +29,9 @@ L'emulatore Android raggiunge il server locale con `http://10.0.2.2:5000/`.
 - `GET /health`
 - `GET /genres`
 
+I film salvati dall'utente (`UserMovie`) non passano dal server: restano nel database locale Room
+dell'app Android.
+
 `POST /chat` expects the same JSON shape used by the Android `ChatRequestDto`:
 
 ```json
@@ -41,27 +44,28 @@ It returns the same JSON shape used by `ChatResponseDto`:
 
 ```json
 {
-  "messageReply": "..."
+  "messageReply": "...",
+  "recommendedMovies": []
 }
 ```
 
-`POST /auth/register` validates the credentials and returns a password hash to store in the
-Android local Room database:
+`POST /auth/register` validates the credentials, stores the user in Supabase, and returns a JWT
+with the created user:
 
 ```json
 {
   "name": "Mario Rossi",
   "email": "mario@example.com",
-  "password": "secret1"
+  "password": "secret1",
+  "confirmPassword": "secret1"
 }
 ```
 
-`POST /auth/login` verifies a password against the hash already saved locally by the app:
+`POST /auth/login` verifies the credentials against the remote Supabase-backed users table:
 
 ```json
 {
   "email": "mario@example.com",
-  "password": "secret1",
-  "passwordHash": "..."
+  "password": "secret1"
 }
 ```
