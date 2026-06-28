@@ -68,7 +68,11 @@ fun StatsScreen(
     dao: FilmDAO,
     onBackClick: () -> Unit
 ) {
-    BackHandler { onBackClick() }
+
+
+    BackHandler {
+        onBackClick()
+    }
 
     var savedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
     var moviesByMood by remember { mutableStateOf<Map<MovieMood, List<UserMovie>>>(emptyMap()) }
@@ -79,14 +83,18 @@ fun StatsScreen(
     LaunchedEffect(user?._id) {
         val currentUser = user ?: return@LaunchedEffect
         try {
+
             val loadedMovies = withContext(Dispatchers.IO) {
                 dao.getMoviesByUser(currentUser._id)
             }
+
+
             savedMovies = loadedMovies
             moviesByMood = loadedMovies
                 .filter { it.mood != MovieMood.NOT_SPECIFIED }
                 .groupBy { it.mood }
             topRatedMovies = loadedMovies
+
                 .sortedWith(
                     compareByDescending<UserMovie> { it.userRating }
                         .thenByDescending { it._id }
@@ -95,6 +103,7 @@ fun StatsScreen(
             recentlyAddedMovies = loadedMovies
                 .sortedByDescending { it._id }
                 .take(5)
+
         } catch (e: Exception) {
             savedMovies = emptyList()
             moviesByMood = emptyMap()

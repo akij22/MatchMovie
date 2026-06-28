@@ -1,6 +1,11 @@
 package com.example.matchmovie.screens
 
-import androidx.compose.foundation.Image
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.keyframes
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -9,11 +14,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -29,17 +36,15 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.matchmovie.R
 import com.example.matchmovie.components.InfoMessage
+import com.example.matchmovie.components.MovieCard
 import com.example.matchmovie.enumentity.MessageSender
 import com.example.matchmovie.model.ChatMessage
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.ChatRequestDto
+import com.example.matchmovie.network.dto.SingleMovieResultDto
 import com.example.matchmovie.ui.theme.MatchMovieCard
 import com.example.matchmovie.ui.theme.MatchMovieLightText
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
@@ -54,7 +59,8 @@ fun AIChatScreen(
     chatMessages: List<ChatMessage>,
     onChatMessagesChange: (List<ChatMessage>) -> Unit,
     messagePrompt: String,
-    onMessagePromptChange: (String) -> Unit
+    onMessagePromptChange: (String) -> Unit,
+    onMovieSelected: suspend (SingleMovieResultDto) -> Unit
 ) {
 
     var hasSubmittedSearch by remember { mutableStateOf(false) }
@@ -85,18 +91,16 @@ fun AIChatScreen(
             // Renderizzo i messaggi nella chat
             } else {
                 items(chatMessages) { message ->
-                    ChatMessageBox(message)
+                    ChatMessageBox(
+                        message = message,
+                        onMovieSelected = onMovieSelected
+                    )
                 }
             }
 
             if (isSending) {
                 item {
-                    ChatMessageBox(
-                        ChatMessage(
-                            "...",
-                            MessageSender.AIASSISTANT
-                        )
-                    )
+                    TypingIndicatorBox()
                 }
             }
 
@@ -182,7 +186,8 @@ fun AIChatScreen(
                                 onChatMessagesChange(
                                     updatedChatMessages + ChatMessage(
                                         assistantReply,
-                                        MessageSender.AIASSISTANT
+                                        MessageSender.AIASSISTANT,
+                                        recommendedMovies = response.recommendedMovies
                                     )
                                 )
 
@@ -217,32 +222,135 @@ fun AIChatScreen(
 
 
 @Composable
-fun ChatMessageBox(message: ChatMessage) {
+fun ChatMessageBox(
+    message: ChatMessage,
+    onMovieSelected: suspend (SingleMovieResultDto) -> Unit
+) {
+    val isUserMessage = message.whoSent == MessageSender.USER
+    val hasRecommendedMovies = message.recommendedMovies.isNotEmpty()
+
     Box(
         modifier = Modifier
-
-            // Imposto una lunghezza massima per i messaggi, per contenere in modo completo la risposta dell'assistente AI
-            .widthIn(max = 400.dp)
+            .fillMaxWidth()
             .padding(vertical = 4.dp),
-        contentAlignment = if (message.whoSent == MessageSender.USER) {
+        contentAlignment = if (isUserMessage) {
             Alignment.CenterEnd
         } else {
             Alignment.CenterStart
         }
     ) {
-        Box(
+        if (!isUserMessage && hasRecommendedMovies) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start
+            ) {
+                ChatBubble(
+                    text = message.message,
+                    isUserMessage = false,
+                    modifier = Modifier
+                        .fillMaxWidth(0.78f)
+                        .widthIn(max = 400.dp)
+                )
+
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(message.recommendedMovies) { movie ->
+                        MovieCard(
+                            movie = movie,
+                            onMovieSelected = onMovieSelected
+                        )
+                    }
+                }
+            }
+        } else {
+            ChatBubble(
+                text = message.message,
+                isUserMessage = isUserMessage,
+                modifier = Modifier
+                    .fillMaxWidth(0.78f)
+                    .widthIn(max = 400.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun ChatBubble(
+    text: String,
+    isUserMessage: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .background(
+                color = if (isUserMessage) MatchMoviePrimary else MatchMovieCard,
+                shape = RoundedCornerShape(18.dp)
+            )
+            .padding(horizontal = 14.dp, vertical = 10.dp)
+    ) {
+        Text(
+            text = text,
+            color = MatchMovieLightText
+        )
+    }
+}
+
+
+@Composable
+fun TypingIndicatorBox() {
+    val transition = rememberInfiniteTransition(label = "typing")
+
+    val offsets = (0..2).map { index ->
+        transition.animateFloat(
+            initialValue = 0f,
+            targetValue = 0f,
+            animationSpec = infiniteRepeatable(
+                animation = keyframes {
+                    durationMillis = 1200
+                    0f at 0 with LinearEasing
+                    1f at 150 with LinearEasing
+                    0f at 300 with LinearEasing
+                    0f at 1200 with LinearEasing
+                },
+                repeatMode = RepeatMode.Restart,
+                initialStartOffset = androidx.compose.animation.core.StartOffset(index * 120)
+            ),
+            label = "dot_$index"
+        )
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .widthIn(max = 400.dp)
+            .padding(vertical = 4.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(
             modifier = Modifier
-                .fillMaxWidth(0.78f)
                 .background(
-                    color = if (message.whoSent == MessageSender.USER) MatchMoviePrimary else MatchMovieCard,
+                    color = MatchMovieCard,
                     shape = RoundedCornerShape(18.dp)
                 )
-                .padding(horizontal = 14.dp, vertical = 10.dp)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(
-                text = message.message,
-                color = MatchMovieLightText
-            )
+            offsets.forEach { anim ->
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .offset(y = (-anim.value * 6).dp)
+                        .background(
+                            color = MatchMovieLightText,
+                            shape = RoundedCornerShape(50)
+                        )
+                )
+            }
         }
     }
 }

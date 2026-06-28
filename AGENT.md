@@ -9,6 +9,7 @@ MatchMovie is an Android app built with Kotlin and Jetpack Compose for searching
 - Do not introduce new architectures or extra layers unless explicitly requested.
 - Prefer small, local changes over broad refactors.
 - Use clear, descriptive names for functions, variables, Composables, and files.
+- After completing code changes, always provide a concise summary of what was modified, listing each change with the affected file path.
 
 ## Composables
 
@@ -75,6 +76,7 @@ MatchMovie is an Android app built with Kotlin and Jetpack Compose for searching
 - Avoid vague or overly abbreviated names.
 - Keep comments useful, short, and focused on why something is done.
 - Do not comment obvious code.
+- Do not replace or remove comments written by the user.
 - Prefer private functions for helpers used only inside one file.
 - Do not leave dead code, unused imports, or unused variables.
 - Keep standard Kotlin formatting.
