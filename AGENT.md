@@ -79,6 +79,11 @@ MatchMovie is an Android app built with Kotlin and Jetpack Compose for searching
 - Do not leave dead code, unused imports, or unused variables.
 - Keep standard Kotlin formatting.
 
+## Build and Checking
+
+- Compile and check the Android app with the dedicated Gradle command, using `gradle`.
+- Use Gradle checks as the source of truth for validation.
+
 ## UI Rules
 
 - Reuse colors from `ui/theme/Color.kt`.
@@ -96,3 +101,4 @@ MatchMovie is an Android app built with Kotlin and Jetpack Compose for searching
 - Do not mix network DTOs, database entities, and UI models without clear mapper functions.
 - Do not add new dependencies unless they are genuinely needed.
 - Do not modify the backend when the request only concerns the Android UI.
+- Do not use Flutter checks for validation; use only Gradle checks.
