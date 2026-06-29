@@ -2,6 +2,7 @@ package com.example.matchmovie.network
 
 import com.example.matchmovie.network.dto.ChatRequestDto
 import com.example.matchmovie.network.dto.ChatResponseDto
+import com.example.matchmovie.network.dto.AuthUserDto
 import com.example.matchmovie.network.dto.GenreResponseDto
 import com.example.matchmovie.network.dto.LoginRequestDto
 import com.example.matchmovie.network.dto.LoginResponseDto
@@ -56,6 +57,9 @@ interface TmdbMovieApi {
     suspend fun login(
         @Body request: LoginRequestDto
     ): LoginResponseDto
+
+    @GET("auth/me")
+    suspend fun getCurrentUser(): AuthUserDto
 
 
     @GET("movies/{movie_id}/recommendations")

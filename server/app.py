@@ -27,10 +27,18 @@ OPENROUTER_API_KEY = os.environ.get("OPENROUTER_API_KEY")
 
 OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "openrouter/owl-alpha")
 EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+BEARER_PATTERN = re.compile(r"^Bearer\s+(.+)$", re.IGNORECASE)
 
 JWT_SECRET = os.environ.get("SUPABASE_SECRET_KEY", "dev-secret")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 720
+
+
+def extract_bearer_token(auth_header):
+    match = BEARER_PATTERN.match((auth_header or "").strip())
+    if not match:
+        return ""
+    return match.group(1).strip()
 
 
 def validate_auth_payload(data):
@@ -65,8 +73,7 @@ def create_jwt(user_id, email):
 def require_auth(f):
     @functools.wraps(f)
     def decorated(*args, **kwargs):
-        auth_header = request.headers.get("Authorization", "")
-        token = auth_header.removeprefix("Bearer ").strip()
+        token = extract_bearer_token(request.headers.get("Authorization", ""))
 
         if not token:
             return jsonify({"error": "Missing authorization token"}), 401
@@ -174,11 +181,70 @@ def search_recommended_movies(movie_titles):
     return recommended_movies
 
 
-def openrouter_chat(prompt):
+def format_user_context(user_context):
+    """Trasforma il contesto utente ricevuto dall'app in un testo per il system prompt."""
+    if not user_context:
+        return ""
+
+    name = user_context.get("name") or "the user"
+    total = user_context.get("totalSavedMovies", 0)
+    avg = user_context.get("averageRating", 0.0)
+    mood = user_context.get("favoriteMood")
+
+    lines = [
+        f"The logged-in user is {name}.",
+        f"They have saved {total} movie(s) in the app.",
+    ]
+
+    if avg:
+        lines.append(f"Their average rating is {avg:.1f} out of 5.")
+
+    if mood and mood != "NOT_SPECIFIED":
+        lines.append(f"Their favorite mood is {mood}.")
+
+    top_rated = user_context.get("topRatedMovies") or []
+    if top_rated:
+        titles = ", ".join(m.get("title", "") for m in top_rated if m.get("title"))
+        lines.append(f"Their top-rated saved movies are: {titles}.")
+
+    recent = user_context.get("recentlyAddedMovies") or []
+    if recent:
+        titles = ", ".join(m.get("title", "") for m in recent if m.get("title"))
+        lines.append(f"Their most recently added saved movies are: {titles}.")
+
+    all_saved = user_context.get("allSavedMovies") or []
+    if all_saved:
+        details = "; ".join(
+            f"{m.get('title', 'Unknown')} (rating {m.get('rating', 0)}, mood {m.get('mood', 'NOT_SPECIFIED')})"
+            for m in all_saved
+            if m.get("title")
+        )
+        lines.append(f"All saved movies: {details}.")
+
+    return " ".join(lines)
+
+
+def openrouter_chat(prompt, user_context=None):
     if not OPENROUTER_API_KEY:
         return jsonify(
             {"error": "OPENROUTER_API_KEY environment variable is not set"}
         ), 500
+
+    context_text = format_user_context(user_context)
+    system_content = (
+        "Your name is MatchMovie's assistant. Reply in the same language in which the question was asked. "
+        "Help the user find movies, explain recommendations clearly, and keep replies concise. "
+        "The description of each movie cannot exceed 100 characters. "
+        "IMPORTANT: do not format your response in markdown style (so don't use '**<text>**' for bold, use plain text instead). "
+        "IMPORTANT: if user asks about TV series, reply that they are not currently supported and suggest movies instead. "
+        "Return only valid JSON with this shape: "
+        '{"messageReply":"short visible reply","recommendedMovies":[{"title":"Movie title"}]}. '
+        "Put only movie titles in recommendedMovies, with at most 5 movies. "
+        "If there are no movie recommendations, use an empty recommendedMovies array."
+    )
+
+    if context_text:
+        system_content += " " + context_text + " Use this information to personalize your answers, but do not mention it explicitly unless the user asks."
 
     try:
         response = requests.post(
@@ -192,17 +258,7 @@ def openrouter_chat(prompt):
                 "messages": [
                     {
                         "role": "system",
-                        "content": (
-                            "Your name is MatchMovie's assistant. Reply in the same language in which the question was asked. "
-                            "Help the user find movies, explain recommendations clearly, and keep replies concise. "
-                            "The description of each movie cannot exceed 100 characters. "
-                            "IMPORTANT: do not format your response in markdown style (so don't use '**<text>**' for bold, use plain text instead). "
-                            "IMPORTANT: if user asks about TV series, reply that they are not currently supported and suggest movies instead. "
-                            "Return only valid JSON with this shape: "
-                            '{"messageReply":"short visible reply","recommendedMovies":[{"title":"Movie title"}]}. '
-                            "Put only movie titles in recommendedMovies, with at most 5 movies. "
-                            "If there are no movie recommendations, use an empty recommendedMovies array."
-                        ),
+                        "content": system_content,
                     },
                     {
                         "role": "user",
@@ -324,11 +380,12 @@ def movie_videos(movie_id):
 def chat():
     data = request.get_json(silent=True) or {}
     prompt = data.get("messagePrompt", "").strip()
+    user_context = data.get("userContext")
 
     if not prompt:
         return jsonify({"error": "messagePrompt is required"}), 400
 
-    return openrouter_chat(prompt)
+    return openrouter_chat(prompt, user_context)
 
 
 @app.get("/genres")

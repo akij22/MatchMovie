@@ -111,12 +111,38 @@ class MainActivity : ComponentActivity() {
                 val loggedUser = withContext(Dispatchers.IO) {
                     dao.getLoggedInUser()
                 }
-                currentUser = loggedUser
-                AuthToken.token = loggedUser?.password
 
-                // Se c'è un utente loggato, mostro la relativa schermata dei film
-                // Altrimenti, devo far eseguire il login (/ signup)
-                currentScreen = if (loggedUser == null) Screen.LoginPage else Screen.HomeScreen
+                if (loggedUser == null) {
+                    AuthToken.token = null
+                    currentUser = null
+                    currentScreen = Screen.LoginPage
+                } else {
+                    AuthToken.token = loggedUser.password
+
+                    val validatedUser = runCatching {
+                        withContext(Dispatchers.IO) {
+                            RetrofitInstance.api.getCurrentUser()
+                        }
+                    }.getOrNull()
+
+                    if (validatedUser == null) {
+                        withContext(Dispatchers.IO) {
+                            dao.logoutAllUsers()
+                        }
+                        AuthToken.token = null
+                        currentUser = null
+                        currentScreen = Screen.LoginPage
+                    } else {
+                        currentUser = loggedUser.copy(
+                            name = validatedUser.name.ifBlank { validatedUser.email },
+                            email = validatedUser.email,
+                            profileImage = validatedUser.profileImage,
+                            bio = validatedUser.bio,
+                        )
+                        currentScreen = Screen.HomeScreen
+                    }
+                }
+
                 isAuthLoaded = true
             }
 
@@ -259,14 +285,20 @@ class MainActivity : ComponentActivity() {
                                             }
 
                                             // Mediante il when, assegno ad ogni enumeration la schermata corrispondente
-                                            Screen.ChatScreen -> AIChatScreen(
-                                                // Passo chatMessages e messagePrompt come parametri del Composable, in modo da mantenerli anche al cambio di schermata
-                                                chatMessages = chatMessages,
-                                                onChatMessagesChange = { chatMessages = it },
-                                                messagePrompt = chatMessagePrompt,
-                                                onMessagePromptChange = { chatMessagePrompt = it },
-                                                onMovieSelected = ::onChatMovieSelected
-                                            )
+                                            Screen.ChatScreen -> currentUser?.let { user ->
+                                                AIChatScreen(
+                                                    // Passo chatMessages e messagePrompt come parametri del Composable, in modo da mantenerli anche al cambio di schermata
+                                                    chatMessages = chatMessages,
+                                                    onChatMessagesChange = { chatMessages = it },
+                                                    messagePrompt = chatMessagePrompt,
+                                                    onMessagePromptChange = { chatMessagePrompt = it },
+                                                    onMovieSelected = ::onChatMovieSelected,
+                                                    currentUser = user,
+                                                    dao = dao
+                                                )
+                                            } ?: run {
+                                                currentScreen = Screen.LoginPage
+                                            }
                                             Screen.ProfileScreen -> ProfileScreen(
                                                 user = currentUser,
                                                 dao = dao,

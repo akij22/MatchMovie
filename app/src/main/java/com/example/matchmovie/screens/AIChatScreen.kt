@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,11 +41,16 @@ import androidx.compose.ui.unit.dp
 import com.example.matchmovie.R
 import com.example.matchmovie.components.InfoMessage
 import com.example.matchmovie.components.MovieCard
+import com.example.matchmovie.database.FilmDAO
+import com.example.matchmovie.database.User
+import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.enumentity.MessageSender
+import com.example.matchmovie.enumentity.MovieMood
 import com.example.matchmovie.model.ChatMessage
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.ChatRequestDto
 import com.example.matchmovie.network.dto.SingleMovieResultDto
+import com.example.matchmovie.network.dto.UserContextDto
 import com.example.matchmovie.ui.theme.MatchMovieCard
 import com.example.matchmovie.ui.theme.MatchMovieLightText
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
@@ -60,7 +66,9 @@ fun AIChatScreen(
     onChatMessagesChange: (List<ChatMessage>) -> Unit,
     messagePrompt: String,
     onMessagePromptChange: (String) -> Unit,
-    onMovieSelected: suspend (SingleMovieResultDto) -> Unit
+    onMovieSelected: suspend (SingleMovieResultDto) -> Unit,
+    currentUser: User,
+    dao: FilmDAO
 ) {
 
     var hasSubmittedSearch by remember { mutableStateOf(false) }
@@ -69,6 +77,14 @@ fun AIChatScreen(
     val coroutineScope = rememberCoroutineScope()
     var isSending by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var savedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
+
+    // Carico i film salvati dell'utente loggato per costruire il contesto da inviare all'AI
+    LaunchedEffect(currentUser._id) {
+        savedMovies = withContext(Dispatchers.IO) {
+            dao.getMoviesByUser(currentUser._id)
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -157,12 +173,14 @@ fun AIChatScreen(
                             MessageSender.USER
                         )
 
-                        // Aggiunta del messaggio corrente alla lista di messaggi sa mostrare nella chat (lato UI)
+                        // Aggiunta del messaggio corrente alla lista di messaggi da mostrare nella chat (lato UI)
                         onChatMessagesChange(updatedChatMessages)
 
-                        // Creazione di un oggetto data class di tipo ChatRequestDto
+                        // Creazione di un oggetto data class di tipo ChatRequestDto,
+                        // includendo il contesto dell'utente loggato
                         val request = ChatRequestDto(
-                            messagePrompt = currentPrompt
+                            messagePrompt = currentPrompt,
+                            userContext = buildUserContext(currentUser, savedMovies)
                         )
 
                         onMessagePromptChange("")
@@ -353,4 +371,59 @@ fun TypingIndicatorBox() {
             }
         }
     }
+}
+
+/**
+ * Costruisce il contesto utente a partire dai film salvati localmente.
+ * I dati verranno inviati al backend e inseriti nel system prompt del modello AI.
+ */
+private fun buildUserContext(
+    currentUser: User,
+    savedMovies: List<UserMovie>
+): UserContextDto {
+    val totalSavedMovies = savedMovies.size
+    val averageRating = savedMovies
+        .takeIf { it.isNotEmpty() }
+        ?.map { it.userRating }
+        ?.average()
+        ?: 0.0
+
+    val favoriteMood = savedMovies
+        .takeIf { it.isNotEmpty() }
+        ?.groupingBy { it.mood }
+        ?.eachCount()
+        ?.maxByOrNull { it.value }
+        ?.key
+
+    val topRatedMovies = savedMovies
+        .sortedWith(
+            compareByDescending<UserMovie> { it.userRating }
+                .thenByDescending { it._id }
+        )
+        .take(5)
+        .map { it.toContextMovieDto() }
+
+    val recentlyAddedMovies = savedMovies
+        .sortedByDescending { it._id }
+        .take(5)
+        .map { it.toContextMovieDto() }
+
+    return UserContextDto(
+        userId = currentUser._id,
+        name = currentUser.name,
+        totalSavedMovies = totalSavedMovies,
+        averageRating = averageRating,
+        favoriteMood = favoriteMood,
+        topRatedMovies = topRatedMovies,
+        recentlyAddedMovies = recentlyAddedMovies,
+        allSavedMovies = savedMovies.map { it.toContextMovieDto() }
+    )
+}
+
+private fun UserMovie.toContextMovieDto(): UserContextDto.ContextMovieDto {
+    return UserContextDto.ContextMovieDto(
+        title = title,
+        rating = userRating,
+        mood = mood
+    )
 }
