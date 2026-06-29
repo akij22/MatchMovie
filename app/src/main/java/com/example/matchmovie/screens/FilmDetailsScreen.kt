@@ -83,6 +83,8 @@ fun FilmDetailScreen(
         onBackClick()
     }
 
+
+    // Controllo se il film corrente è già stato salvato dall'utente corrente e memorizzo questa informazione in un apposito state
     LaunchedEffect(currentUser._id, movie.id) {
         isMovieSaved = withContext(Dispatchers.IO) {
             dao.isMovieSaved(
@@ -144,9 +146,11 @@ fun FilmDetailScreen(
                         movie.voteAverage?.let { voteAverage ->
                             InfoChip(text = "★ ${String.format("%.1f", voteAverage)}")
                         }
+
                         movie.originalLanguage?.takeIf { it.isNotBlank() }?.let { originalLanguage ->
                             InfoChip(text = originalLanguage.uppercase())
                         }
+
                         InfoChip(text = movie.mood.toString())
                     }
 

@@ -76,15 +76,22 @@ fun ProfileScreen(
             // Primi 5 film per rating decrescente
             topRatedMovies = loadedMovies
                 .sortedWith(
+
+                    // Indico il metodo di ordinamento (decrescente) e il parametro su cui ordinare (`userRating`)
                     compareByDescending<UserMovie> { movie -> movie.userRating }
+
+                        // Specifico un secondo criterio di ordinamento (in caso abbia film con lo stesso rating)
                         .thenByDescending { movie -> movie._id }
                 )
+
+                // Prendo solo i primi 5
                 .take(5)
 
             // Ultimi 5 film aggiunti: _id cresce con gli insert nel DB locale
             recentlyAddedMovies = loadedMovies
                 .sortedByDescending { movie -> movie._id }
                 .take(5)
+
         } catch (e: Exception) {
             savedMovies = emptyList()
             moviesByMood = emptyMap()
@@ -227,6 +234,7 @@ fun ProfileScreen(
                     ) {
                         rowMovies.forEach { movie ->
                             MovieDaoItem(
+
                                 movie = movie,
                                 onMovieClick = {},
                                 onDeleteClick = {},

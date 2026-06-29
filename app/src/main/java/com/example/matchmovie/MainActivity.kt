@@ -87,6 +87,7 @@ class MainActivity : ComponentActivity() {
             var chatMessagePrompt by remember { mutableStateOf("") }
 
 
+            // State per la memorizzazione della schermata da mostrare
             // Imposto come schermata di inizio quella di Login
             var currentScreen by remember { mutableStateOf(Screen.LoginPage)}
 
@@ -187,6 +188,7 @@ class MainActivity : ComponentActivity() {
                             } else {
 
                                 // In base allo state `currentScreen`, mostro la rispettiva schermata
+                                // Rappresenta il vero e proprio "Controller" dell'applicazione, decidendo cosa mostrare
                                 when(currentScreen) {
                                     Screen.LoginPage -> LoginScreen(
                                         dao = dao,
@@ -213,7 +215,9 @@ class MainActivity : ComponentActivity() {
 
                                 Screen.FilmDetailsScreen -> selectedMovie?.let { movie ->
 
-                                    // Chiamo la nuova schermata, passando il film cliccato e il suo cast come parametri
+                                    // Se utente corrente non è null, lo passo come parametro (state hoisting),
+                                    // in modo che il Composable figlio lo abbia per la memorizzazione dello userid in un UserMovie in caso
+                                    // avvenga il salvataggio di un film su db (STATE HOISTING)
                                     currentUser?.let { user ->
                                         FilmDetailScreen(
                                             movie = movie,
@@ -285,6 +289,8 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
+// Funzione per decidere se mostrare la bottom bar oppure no
 private fun Screen.isBottomTab(): Boolean {
     return this == Screen.HomeScreen ||
         this == Screen.ExploreScreen ||

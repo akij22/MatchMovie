@@ -51,8 +51,12 @@ import kotlinx.coroutines.withContext
 
 @Composable
 fun AIChatScreen(
+
+    // Eseguo state hoisting sulla lista di messaggi (e sulla funzione per aggiungerne), in modo che essi siano memorizzati e mantenuti
+    // tra i cambi di schermate (mantenendoli all'interno di questo Composable, ad ogni sua riapertura la lista si "resetterebbe")
     chatMessages: List<ChatMessage>,
     onChatMessagesChange: (List<ChatMessage>) -> Unit,
+
     messagePrompt: String,
     onMessagePromptChange: (String) -> Unit
 ) {
