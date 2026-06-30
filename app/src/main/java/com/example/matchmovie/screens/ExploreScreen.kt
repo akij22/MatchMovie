@@ -1,5 +1,7 @@
 package com.example.matchmovie.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +28,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.matchmovie.components.ExploreMovieCard
@@ -65,7 +71,10 @@ fun ExploreScreen(
     // Rating temporaneo selezionato dall'utente nel dialog
     var pendingRating by remember { mutableIntStateOf(0) }
 
-
+    // Offset orizzontale della card durante lo swipe (in px): negativo = sinistra, positivo = destra
+    val swipeOffset = remember { Animatable(0f) }
+    val configuration = LocalConfiguration.current
+    val screenWidthPx = with(LocalDensity.current) { configuration.screenWidthDp.dp.toPx() }
 
     LaunchedEffect(currentUser._id) {
         try {
@@ -112,6 +121,7 @@ fun ExploreScreen(
                     pendingMovie = null
                     pendingRating = 0
                     currentMovieIndex++
+                    swipeOffset.snapTo(0f)
                 }
             },
             onSkip = {
@@ -134,11 +144,18 @@ fun ExploreScreen(
                     pendingMovie = null
                     pendingRating = 0
                     currentMovieIndex++
+                    swipeOffset.snapTo(0f)
                 }
             },
             onDismiss = {
                 pendingMovie = null
                 pendingRating = 0
+                coroutineScope.launch {
+                    swipeOffset.animateTo(
+                        targetValue = 0f,
+                        animationSpec = tween(durationMillis = 300)
+                    )
+                }
             }
         )
     }
@@ -165,7 +182,13 @@ fun ExploreScreen(
             else -> {
                 ExploreMovieCard(
                     movie = currentMovie,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .graphicsLayer {
+                            translationX = swipeOffset.value
+                            rotationZ = (swipeOffset.value / screenWidthPx.coerceAtLeast(1f)) * 15f
+                            transformOrigin = TransformOrigin(0.5f, 1f)
+                        }
                 )
 
                 Spacer(modifier = Modifier.height(24.dp))
@@ -179,7 +202,17 @@ fun ExploreScreen(
                         backgroundColor = MatchMovieMutedButton,
                         contentColor = MatchMovieMutedText,
                         modifier = Modifier.weight(1f),
-                        onClick = { currentMovieIndex++ }
+                        enabled = !swipeOffset.isRunning,
+                        onClick = {
+                            coroutineScope.launch {
+                                swipeOffset.animateTo(
+                                    targetValue = -screenWidthPx * 1.5f,
+                                    animationSpec = tween(durationMillis = 400)
+                                )
+                                currentMovieIndex++
+                                swipeOffset.snapTo(0f)
+                            }
+                        }
                     )
 
                     Spacer(modifier = Modifier.size(24.dp))
@@ -189,10 +222,17 @@ fun ExploreScreen(
                         backgroundColor = MatchMoviePrimary,
                         contentColor = Color.White,
                         modifier = Modifier.weight(1f),
+                        enabled = !swipeOffset.isRunning,
                         onClick = {
-                            // Apro il popup di rating invece di salvare subito
-                            pendingRating = 0
-                            pendingMovie = currentMovie
+                            coroutineScope.launch {
+                                swipeOffset.animateTo(
+                                    targetValue = screenWidthPx * 1.5f,
+                                    animationSpec = tween(durationMillis = 400)
+                                )
+                                // Apro il popup di rating dopo che la card e' uscita dallo schermo
+                                pendingRating = 0
+                                pendingMovie = currentMovie
+                            }
                         }
                     )
                 }
@@ -256,10 +296,12 @@ private fun ExploreActionButton(
     backgroundColor: Color,
     contentColor: Color,
     modifier: Modifier = Modifier,
+    enabled: Boolean = true,
     onClick: () -> Unit
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         shape = CircleShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = backgroundColor,
