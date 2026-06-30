@@ -1,5 +1,6 @@
 package com.example.matchmovie.screens
 
+import android.util.Log
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -58,6 +59,8 @@ import com.example.matchmovie.ui.theme.MatchMoviePrimary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
+import java.io.IOException
 
 
 @Composable
@@ -210,7 +213,8 @@ fun AIChatScreen(
                                 )
 
                             } catch (e: Exception) {
-                                errorMessage = "Unable to send message, please try again."
+                                Log.e("AIChatScreen", "Unable to send chat message", e)
+                                errorMessage = e.toChatErrorMessage()
                             } finally {
 
                                 isSending = false
@@ -426,4 +430,17 @@ private fun UserMovie.toContextMovieDto(): UserContextDto.ContextMovieDto {
         rating = userRating,
         mood = mood
     )
+}
+
+private fun Exception.toChatErrorMessage(): String {
+    return when (this) {
+        is HttpException -> when (code()) {
+            401 -> "Session expired. Please log in again."
+            500 -> "AI service configuration error. Check the backend environment variables."
+            502, 503, 504 -> "AI service is temporarily unavailable. Please try again later."
+            else -> "Unable to send message. Server returned HTTP ${code()}."
+        }
+        is IOException -> "Unable to reach the server. Check that Flask is running on port 5001."
+        else -> "Unable to send message, please try again."
+    }
 }

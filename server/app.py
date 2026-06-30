@@ -14,7 +14,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from db import supabase
 
-load_dotenv()
+load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 
 app = Flask(__name__)
