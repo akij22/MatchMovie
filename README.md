@@ -2,37 +2,11 @@
 
 MatchMovie is an Android application that helps users discover, save, rate, and revisit movies. The app combines movie data from The Movie Database (TMDB), a local Room database for each user's saved list, Supabase-backed authentication, and an AI chat assistant powered through a Flask backend.
 
-## Screenshots
+## Demo
 
-Add application screenshots in the placeholders below.
+Below is a short demo of the MatchMovie app in action.
 
-### Login and Registration
-
-![Login screen placeholder](docs/screenshots/login-placeholder.png)
-
-### Home
-
-![Home screen placeholder](docs/screenshots/home-placeholder.png)
-
-### Movie Details
-
-![Movie details screen placeholder](docs/screenshots/movie-details-placeholder.png)
-
-### Explore
-
-![Explore screen placeholder](docs/screenshots/explore-placeholder.png)
-
-### My List
-
-![My List screen placeholder](docs/screenshots/my-list-placeholder.png)
-
-### AI Chat
-
-![AI Chat screen placeholder](docs/screenshots/ai-chat-placeholder.png)
-
-### Profile and Stats
-
-![Profile and Stats screen placeholder](docs/screenshots/profile-stats-placeholder.png)
+<video src="MatchMovie_demo.mp4" controls width="360"></video>
 
 ## Features
 
