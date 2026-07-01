@@ -51,6 +51,7 @@ import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.SingleMovieResultDto
 import com.example.matchmovie.network.dto.SingleTvSeriesResultDto
+import com.example.matchmovie.network.dto.TvSeriesDetailsDto
 import com.example.matchmovie.screens.AIChatScreen
 import com.example.matchmovie.screens.ExploreScreen
 import com.example.matchmovie.screens.FilmDetailScreen
@@ -93,6 +94,9 @@ class MainActivity : ComponentActivity() {
 
             // Memorizzo il cast ottenuto dall'id del film
             var castByMovie by remember { mutableStateOf<MovieCreditsDto?>(null) }
+
+            // Memorizzo i dettagli (stagioni) della serie TV selezionata
+            var tvSeriesDetails by remember { mutableStateOf<TvSeriesDetailsDto?>(null) }
 
             // Mantengo lo stato della chat nel componente padre di AIChatScreen, così non viene perso cambiando schermata
             var chatMessages by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
@@ -161,6 +165,17 @@ class MainActivity : ComponentActivity() {
                         MediaType.Movie -> RetrofitInstance.api.getMovieCredits(movieDetails.id)
                         MediaType.TvSeries -> RetrofitInstance.api.getTvSeriesCredits(movieDetails.id)
                     }
+                }
+
+                // Per le serie TV recupero anche i dettagli (lista delle stagioni)
+                tvSeriesDetails = if (movieDetails.mediaType == MediaType.TvSeries) {
+                    withContext(Dispatchers.IO) {
+                        runCatching {
+                            RetrofitInstance.api.getTvSeriesDetails(movieDetails.id)
+                        }.getOrNull()
+                    }
+                } else {
+                    null
                 }
 
                 selectedMovie = movieDetails
@@ -281,6 +296,7 @@ class MainActivity : ComponentActivity() {
                                                     FilmDetailScreen(
                                                         movie = movie,
                                                         cast = castByMovie,
+                                                        tvSeriesDetails = tvSeriesDetails,
                                                         dao = dao,
                                                         currentUser = user,
 
@@ -332,6 +348,7 @@ class MainActivity : ComponentActivity() {
                                                         selectedMovie = null
                                                         selectedMovieCanBeSaved = true
                                                         castByMovie = null
+                                                        tvSeriesDetails = null
                                                         currentScreen = Screen.LoginPage
                                                     }
                                                 }

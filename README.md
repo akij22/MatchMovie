@@ -143,6 +143,12 @@ curl http://localhost:5001/health
 
 Most movie and chat endpoints require the JWT returned by the authentication endpoints.
 
+## Kotlin Safety Guidelines
+
+- Never use Kotlin's non-null assertion operator (`!!`). It can crash the app at runtime with a `NullPointerException` and hides missing null handling.
+- Prefer safer alternatives such as safe calls (`?.`), Elvis expressions (`?:`), explicit null checks, `let`/`run` blocks, nullable-aware UI states, or early returns when required data is missing.
+- If a value is expected to be non-null because of app logic, validate that assumption explicitly and handle the failure path with a clear fallback, error state, or exception that explains the broken invariant.
+
 ## Notes
 
 - Saved movies are stored locally in the Android Room database.
