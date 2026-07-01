@@ -16,4 +16,3 @@ local.properties
 server/.env
 server/.venv
 server/__pycache__
-MatchMovie_demo.mp4
