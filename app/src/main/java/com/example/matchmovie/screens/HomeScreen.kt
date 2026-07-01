@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.R
 import coil3.compose.AsyncImage
 import com.example.matchmovie.components.InfoMessage
+import com.example.matchmovie.components.LoadingScreen
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.SingleMovieResultDto
@@ -59,7 +60,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.matchmovie.components.MovieResultItem
 import com.example.matchmovie.components.MovieCard
-import com.example.matchmovie.components.StatusMessage
 import com.example.matchmovie.enumentity.MovieMood
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -338,9 +338,10 @@ fun HomeScreen(
 
                 if (isLoadingPopularMovies || isLoadingUpcomingMovies) {
 
-                    // Mostro messaggio informativo durante il caricamento dei dati
+                    // Mostro lo schermo di caricamento durante il recupero dei dati
                     item {
-                        StatusMessage("Loading movies...",
+                        LoadingScreen(
+                            message = "Loading movies...",
                             modifier = Modifier.fillParentMaxSize()
                         )
                     }

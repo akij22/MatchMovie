@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.matchmovie.ui.theme.MatchMovieSecondary
 import coil3.compose.AsyncImage
+import com.example.matchmovie.components.LoadingScreen
 import com.example.matchmovie.components.MovieDaoItem
 import com.example.matchmovie.components.ProfileStatCard
 import com.example.matchmovie.database.FilmDAO
@@ -64,10 +65,12 @@ fun ProfileScreen(
     var topRatedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
     var recentlyAddedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String>("") }
+    var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(user?._id) {
         val currentUser = user ?: return@LaunchedEffect
 
+        isLoading = true
         try {
             val loadedMovies = withContext(Dispatchers.IO) {
                 dao.getMoviesByUser(currentUser._id)
@@ -95,9 +98,9 @@ fun ProfileScreen(
             topRatedMovies = emptyList()
             recentlyAddedMovies = emptyList()
             errorMessage = "Unable to load local information, please try again"
+        } finally {
+            isLoading = false
         }
-        
-
     }
 
     val averageRating = savedMovies
@@ -122,13 +125,19 @@ fun ProfileScreen(
     val highestRatedMovie = topRatedMovies.firstOrNull()?.title ?: "-"
     val firstAddedMovie = savedMovies.minByOrNull { movie -> movie._id }?.title ?: "-"
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MatchMovieBackground),
-        contentPadding = PaddingValues(24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
+    if (isLoading) {
+        LoadingScreen(
+            message = "Loading profile...",
+            modifier = Modifier.fillMaxSize()
+        )
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MatchMovieBackground),
+            contentPadding = PaddingValues(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
         item {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -379,4 +388,5 @@ fun ProfileScreen(
             }
         }
     }
+}
 }

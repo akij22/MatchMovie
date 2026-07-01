@@ -35,6 +35,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.matchmovie.components.LoadingScreen
 import com.example.matchmovie.components.MatchMovieBottomBar
 import com.example.matchmovie.components.MatchMovieTitle
 import com.example.matchmovie.database.FilmDatabase
@@ -234,7 +235,7 @@ class MainActivity : ComponentActivity() {
                                     // Definisco la schermata da mostrare, associandola ad ogni enum
                                     // della classe `Screen`
                                     if (!isAuthLoaded) {
-                                        LoadingScreen()
+                                        LoadingScreen(modifier = Modifier.fillMaxSize())
                                     } else {
                                         // In base allo state `currentScreen`, mostro la rispettiva schermata
                                         when (currentScreen) {
@@ -423,23 +424,3 @@ private fun Screen.isBottomTab(): Boolean {
 
 
 
-
-// Componente "temporaneo", per mostrare schermate placeholder in attesa del loro sviluppo
-@Composable
-private fun LoadingScreen() {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MatchMovieBackground)
-            .padding(24.dp),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Text(
-                text = "Loading",
-                color = MaterialTheme.colorScheme.primary,
-                style = MaterialTheme.typography.titleLarge
-            )
-        }
-    }
-}

@@ -51,6 +51,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.matchmovie.R
 import com.example.matchmovie.components.InfoMessage
+import com.example.matchmovie.components.LoadingScreen
 import com.example.matchmovie.components.StatusMessage
 
 @Composable
@@ -174,7 +175,10 @@ fun ExploreScreen(
             * - l'utente non abbia film salvati --> mostro popularMovies
             * - i recommendedMovies sono terminati --> mostro avviso del termine
             * */
-            currentMovie == null && recommendedMovies.isEmpty() -> StatusMessage("Loading movies...")
+            currentMovie == null && recommendedMovies.isEmpty() -> LoadingScreen(
+                message = "Loading movies...",
+                modifier = Modifier.fillMaxSize()
+            )
             currentMovie == null -> InfoMessage(
                 imageRes = R.drawable.end_list,
                 message = "No more movies to explore"

@@ -114,6 +114,31 @@ def tmdb_request_json(path, params=None):
     return response.json(), response.status_code
 
 
+def extract_youtube_trailer_key(videos):
+    trailer = next(
+        (
+            video
+            for video in videos
+            if video.get("site") == "YouTube"
+            and video.get("type") == "Trailer"
+            and video.get("official")
+        ),
+        None,
+    ) or next(
+        (
+            video
+            for video in videos
+            if video.get("site") == "YouTube" and video.get("type") == "Trailer"
+        ),
+        None,
+    )
+
+    if not trailer:
+        return None
+
+    return trailer.get("key")
+
+
 def parse_chat_recommendation_response(message_reply):
     cleaned_reply = message_reply.strip()
 
@@ -350,29 +375,93 @@ def movie_videos(movie_id):
         return response, status_code
 
     data = response.get_json()
-    videos = data.get("results", [])
-    trailer = next(
-        (
-            video
-            for video in videos
-            if video.get("site") == "YouTube"
-            and video.get("type") == "Trailer"
-            and video.get("official")
-        ),
-        None,
-    ) or next(
-        (
-            video
-            for video in videos
-            if video.get("site") == "YouTube" and video.get("type") == "Trailer"
-        ),
-        None,
-    )
+    trailer_key = extract_youtube_trailer_key(data.get("results", []))
 
-    if not trailer:
+    if not trailer_key:
         return jsonify({"key": None})
 
-    return jsonify({"key": trailer.get("key")})
+    return jsonify({"key": trailer_key})
+
+
+# ---------------------------------------------------------------------------
+# TV SERIES ENDPOINTS (protetti)
+# ---------------------------------------------------------------------------
+
+
+@app.get("/tv-series/search")
+@require_auth
+def search_tv_series():
+    query = request.args.get("query", "").strip()
+    if not query:
+        return jsonify(
+            {
+                "page": 1,
+                "results": [],
+                "total_pages": 0,
+                "total_results": 0,
+            }
+        )
+
+    return tmdb_get_method("/search/tv", {"query": query})
+
+
+@app.get("/tv-series/popular")
+@require_auth
+def popular_tv_series():
+    return tmdb_get_method("/tv/popular")
+
+
+@app.get("/tv-series/top-rated")
+@require_auth
+def top_rated_tv_series():
+    return tmdb_get_method("/tv/top_rated")
+
+
+@app.get("/tv-series/on-the-air")
+@require_auth
+def on_the_air_tv_series():
+    return tmdb_get_method("/tv/on_the_air")
+
+
+@app.get("/tv-series/airing-today")
+@require_auth
+def airing_today_tv_series():
+    return tmdb_get_method("/tv/airing_today")
+
+
+@app.get("/tv-series/<int:series_id>/credits")
+@require_auth
+def tv_series_credits(series_id):
+    return tmdb_get_method(f"/tv/{series_id}/credits")
+
+
+@app.get("/tv-series/<int:series_id>/recommendations")
+@require_auth
+def tv_series_recommendations(series_id):
+    return tmdb_get_method(f"/tv/{series_id}/recommendations")
+
+
+@app.get("/tv-series/<int:series_id>/videos")
+@require_auth
+def tv_series_videos(series_id):
+    response, status_code = tmdb_get_method(f"/tv/{series_id}/videos")
+
+    if status_code != 200:
+        return response, status_code
+
+    data = response.get_json()
+    trailer_key = extract_youtube_trailer_key(data.get("results", []))
+
+    if not trailer_key:
+        return jsonify({"key": None})
+
+    return jsonify({"key": trailer_key})
+
+
+@app.get("/tv-series/genres")
+@require_auth
+def tv_series_genres():
+    return tmdb_get_method("/genre/tv/list")
 
 
 @app.post("/chat")
