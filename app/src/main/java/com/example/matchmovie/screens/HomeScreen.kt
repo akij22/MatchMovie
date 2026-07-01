@@ -530,7 +530,7 @@ private fun HomeSearchBar(
             )
         ) {
             Text(
-                text = if (isSearching) "..." else "Search",
+                text = "Search",
                 fontWeight = FontWeight.Bold
             )
         }
