@@ -429,6 +429,21 @@ def airing_today_tv_series():
     return tmdb_get_method("/tv/airing_today")
 
 
+@app.get("/tv-series/<int:series_id>/details")
+@require_auth
+def tv_series_details(series_id):
+    return tmdb_get_method(
+        f"/tv/{series_id}",
+        {"append_to_response": "content_ratings"},
+    )
+
+
+@app.get("/tv-series/<int:series_id>/season/<int:season_number>")
+@require_auth
+def tv_series_season(series_id, season_number):
+    return tmdb_get_method(f"/tv/{series_id}/season/{season_number}")
+
+
 @app.get("/tv-series/<int:series_id>/credits")
 @require_auth
 def tv_series_credits(series_id):

@@ -32,7 +32,12 @@ import kotlinx.coroutines.launch
 
 // Componente che rappresenta un singolo item da mostrare nella lista dei risultati della ricerca
 @Composable
-fun MovieResultItem(movie: SingleMovieResultDto, onMovieSelected: suspend (SingleMovieResultDto) -> Unit) {
+fun MovieResultItem(
+    movie: SingleMovieResultDto,
+    onMovieSelected: suspend (SingleMovieResultDto) -> Unit,
+    detailsButtonText: String = "Film Details",
+    showDetailsButton: Boolean = true
+) {
     val coroutineScope = rememberCoroutineScope()
 
     Card (
@@ -101,20 +106,22 @@ fun MovieResultItem(movie: SingleMovieResultDto, onMovieSelected: suspend (Singl
                 color = MatchMovieMutedText
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        onMovieSelected(movie)
-                    }
-                },
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MatchMoviePrimary,
-                    contentColor = MatchMovieLightText
-                )
-            ) {
-                Text("Film Details")
+            if (showDetailsButton) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(
+                    onClick = {
+                        coroutineScope.launch {
+                            onMovieSelected(movie)
+                        }
+                    },
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MatchMoviePrimary,
+                        contentColor = MatchMovieLightText
+                    )
+                ) {
+                    Text(detailsButtonText)
+                }
             }
         }
     }

@@ -1,6 +1,5 @@
 package com.example.matchmovie.screens
 
-import android.annotation.SuppressLint
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -53,7 +53,12 @@ import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.network.dto.MovieCastMemberDto
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieCrewMemberDto
+import com.example.matchmovie.network.dto.TvEpisodeDto
+import com.example.matchmovie.network.dto.TvSeasonSummaryDto
+import com.example.matchmovie.network.dto.TvSeriesDetailsDto
+import com.example.matchmovie.model.MediaType
 import com.example.matchmovie.model.MovieDetailsUi
+import com.example.matchmovie.network.RetrofitInstance
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -62,6 +67,7 @@ import kotlinx.coroutines.withContext
 fun FilmDetailScreen(
     movie: MovieDetailsUi,
     cast: MovieCreditsDto?,
+    tvSeriesDetails: TvSeriesDetailsDto? = null,
     dao: FilmDAO,
 
     // currentUser passato mediante la MainActivity, la quale ha l'utente attualmente loggato in una state variable
@@ -71,8 +77,18 @@ fun FilmDetailScreen(
 ) {
     val backdropUrl = movie.backdropPath?.let { "https://image.tmdb.org/t/p/w780$it" }
     val posterUrl = movie.posterPath?.let { "https://image.tmdb.org/t/p/w500$it" }
+    val isTvSeries = movie.mediaType == MediaType.TvSeries
+    val releaseDateLabel = if (isTvSeries) "First air date not available" else "Release date not available"
+    val descriptionTitle = if (isTvSeries) "TV Series Description" else "Film Description"
+    val savedLabel = if (isTvSeries) "series" else "film"
     var userRating by remember { mutableIntStateOf(0) }
     var isMovieSaved by remember { mutableStateOf(false) }
+
+    // State per la gestione delle stagioni/episodi delle serie TV
+    var selectedSeasonNumber by remember { mutableIntStateOf(-1) }
+    var seasonDetails by remember { mutableStateOf<com.example.matchmovie.network.dto.TvSeasonDetailsDto?>(null) }
+    var episodes by remember { mutableStateOf<List<TvEpisodeDto>>(emptyList()) }
+    var isLoadingSeason by remember { mutableStateOf(false) }
 
     // Coroutine per lanciare operazioni su DB
     val coroutineScope = rememberCoroutineScope()
@@ -91,6 +107,29 @@ fun FilmDetailScreen(
                 tmdbMovieId = movie.id
             )
         }
+    }
+
+    // All'apertura di una serie TV, seleziono automaticamente la prima stagione disponibile
+    LaunchedEffect(tvSeriesDetails?.id) {
+        val details = tvSeriesDetails ?: return@LaunchedEffect
+        selectedSeasonNumber = details.seasons.firstOrNull()?.season_number ?: 0
+    }
+
+    // Al cambio di stagione selezionata, recupero gli episodi della stagione tramite API
+    LaunchedEffect(tvSeriesDetails?.id, selectedSeasonNumber) {
+        val details = tvSeriesDetails ?: return@LaunchedEffect
+        if (selectedSeasonNumber < 0) return@LaunchedEffect
+
+        isLoadingSeason = true
+        seasonDetails = null
+        episodes = emptyList()
+        seasonDetails = withContext(Dispatchers.IO) {
+            runCatching {
+                RetrofitInstance.api.getTvSeriesSeason(details.id, selectedSeasonNumber)
+            }.getOrNull()
+        }
+        episodes = seasonDetails?.episodes.orEmpty()
+        isLoadingSeason = false
     }
 
     LazyColumn(
@@ -149,6 +188,9 @@ fun FilmDetailScreen(
                             InfoChip(text = originalLanguage.uppercase())
                         }
                         InfoChip(text = movie.mood.toString())
+                        if (isTvSeries) {
+                            InfoChip(text = "TV SERIES")
+                        }
                     }
 
                     Text(
@@ -162,7 +204,7 @@ fun FilmDetailScreen(
                     )
 
                     Text(
-                        text = movie.releaseDate ?: "Release date not available",
+                        text = movie.releaseDate ?: releaseDateLabel,
                         color = Color(0xFFE1BEBF),
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -179,7 +221,7 @@ fun FilmDetailScreen(
 
                 // Sezione riguardante la breve descrizione del film
                 Text(
-                    text = "Film Description",
+                    text = descriptionTitle,
                     color = Color(0xFFF7F9FC),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
@@ -193,6 +235,105 @@ fun FilmDetailScreen(
                     lineHeight = 24.sp,
                     modifier = Modifier.padding(top = 12.dp)
                 )
+            }
+        }
+
+        // Sezione stagioni/episodi (solo per le serie TV)
+        if (isTvSeries && tvSeriesDetails != null) {
+            item {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp, end = 16.dp, top = 28.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Seasons & Episodes",
+                            color = Color(0xFFF7F9FC),
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold
+                        )
+
+                        val selectedSeason = tvSeriesDetails.seasons
+                            .find { it.season_number == selectedSeasonNumber }
+                        selectedSeason?.episode_count?.let { count ->
+                            Text(
+                                text = "$count episodes",
+                                color = Color(0x99E1BEBF),
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(14.dp))
+
+                    // Selettore di stagione
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        contentPadding = PaddingValues(vertical = 2.dp)
+                    ) {
+                        items(tvSeriesDetails.seasons) { season ->
+                            SeasonChip(
+                                season = season,
+                                selected = season.season_number == selectedSeasonNumber,
+                                onClick = { selectedSeasonNumber = season.season_number }
+                            )
+                        }
+                    }
+                }
+            }
+
+            item {
+                when {
+                    isLoadingSeason -> {
+                        LoadingScreen(
+                            message = "Loading episodes...",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp)
+                        )
+                    }
+
+                    seasonDetails?.episodes.isNullOrEmpty() -> {
+                        Text(
+                            text = "No episodes available for this season.",
+                            color = Color(0xFFE1BEBF),
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)
+                        )
+                    }
+
+                    else -> {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(start = 16.dp, end = 16.dp, top = 16.dp)
+                        ) {
+                            seasonDetails?.name?.takeIf { it.isNotBlank() }?.let { seasonName ->
+                                Text(
+                                    text = seasonName,
+                                    color = Color(0xFF70F8E8),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Spacer(modifier = Modifier.height(12.dp))
+                            }
+
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                                contentPadding = PaddingValues(end = 8.dp)
+                            ) {
+                                items(episodes) { episode ->
+                                    EpisodeCard(episode = episode)
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
 
@@ -243,14 +384,19 @@ fun FilmDetailScreen(
                 }
             }
 
-            // Ottengo solo il regista del film, prendendolo dalla lista `crew` che è di tipo `MovieCrewMemberDto`
-            val director = cast.crew.firstOrNull { it.job == "Director" }
+            val mainCrewMember = if (isTvSeries) {
+                cast.crew.firstOrNull { it.job == "Creator" }
+                    ?: cast.crew.firstOrNull { it.job == "Executive Producer" }
+                    ?: cast.crew.firstOrNull()
+            } else {
+                cast.crew.firstOrNull { it.job == "Director" }
+            }
 
-            if (director != null) {
+            if (mainCrewMember != null) {
                 item {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 30.dp)) {
                         Text(
-                            text = "Director",
+                            text = if (isTvSeries) "Creator" else "Director",
                             color = Color(0xFFF7F9FC),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
@@ -258,7 +404,7 @@ fun FilmDetailScreen(
                         Spacer(modifier = Modifier.height(14.dp))
 
                         // Mostro il regista mediante apposito Composable
-                        DirectorMemberItem(member = director)
+                        DirectorMemberItem(member = mainCrewMember)
                     }
                 }
             }
@@ -291,7 +437,7 @@ fun FilmDetailScreen(
                     // Se film è gia presente sul db dell'utente loggato, non permetto il salvataggio
                     if (isMovieSaved) {
                         Text(
-                            text = "Film already saved in MyList",
+                            text = "${savedLabel.replaceFirstChar { it.uppercase() }} already saved in MyList",
                             color = Color(0xFFE1BEBF),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold
@@ -540,5 +686,156 @@ fun CastMemberItem(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
+    }
+}
+
+
+// Composable per il selettore di stagione (chip)
+@Composable
+private fun SeasonChip(
+    season: TvSeasonSummaryDto,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val containerColor = if (selected) Color(0xFFE84A5F) else Color(0x99202C38)
+    val contentColor = if (selected) Color.White else Color(0xFFE1BEBF)
+    val borderColor = if (selected) Color.Transparent else Color(0x1AF7F9FC)
+
+    Box(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(containerColor)
+            .border(1.dp, borderColor, RoundedCornerShape(50))
+            .clickable { onClick() }
+            .padding(horizontal = 18.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = season.name?.takeIf { it.isNotBlank() }
+                ?: "Season ${season.season_number}",
+            color = contentColor,
+            fontSize = 13.sp,
+            lineHeight = 16.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+
+// Composable per la card di un singolo episodio (non cliccabile)
+@Composable
+private fun EpisodeCard(
+    episode: TvEpisodeDto,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .width(260.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFF182029))
+            .border(1.dp, Color(0x1AF7F9FC), RoundedCornerShape(12.dp))
+            .padding(10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color(0xFF0C141C))
+        ) {
+            AsyncImage(
+                model = episode.stillUrl,
+                contentDescription = episode.name,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            // Overlay scuro per leggibilità del badge runtime
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color(0x330C141C)
+                            )
+                        )
+                    )
+            )
+
+            // Badge numero episodio in alto a sinistra
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(6.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(Color(0xCC0C141C))
+                    .padding(horizontal = 8.dp, vertical = 3.dp)
+            ) {
+                Text(
+                    text = "E${(episode.episode_number ?: 0).toString().padStart(2, '0')}",
+                    color = Color(0xFF70F8E8),
+                    fontSize = 10.sp,
+                    lineHeight = 12.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            // Badge runtime in basso a destra
+            episode.runtime?.let { runtime ->
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(6.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xCC0C141C))
+                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                ) {
+                    Text(
+                        text = "${runtime}m",
+                        color = Color(0xFFE1BEBF),
+                        fontSize = 10.sp,
+                        lineHeight = 12.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Text(
+            text = episode.name?.takeIf { it.isNotBlank() }
+                ?: "Episode ${episode.episode_number ?: ""}",
+            color = Color(0xFFF7F9FC),
+            fontSize = 14.sp,
+            lineHeight = 18.sp,
+            fontWeight = FontWeight.Bold,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis
+        )
+
+        episode.air_date?.takeIf { it.isNotBlank() }?.let { airDate ->
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = airDate,
+                color = Color(0x99E1BEBF),
+                fontSize = 11.sp,
+                lineHeight = 13.sp
+            )
+        }
+
+        episode.overview?.takeIf { it.isNotBlank() }?.let { overview ->
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = overview,
+                color = Color(0xFFE1BEBF),
+                fontSize = 12.sp,
+                lineHeight = 16.sp,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }

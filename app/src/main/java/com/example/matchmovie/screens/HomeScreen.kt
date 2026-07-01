@@ -3,6 +3,8 @@ package com.example.matchmovie.screens
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,7 +50,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.core.R
 import coil3.compose.AsyncImage
 import com.example.matchmovie.components.InfoMessage
 import com.example.matchmovie.components.LoadingScreen
@@ -61,35 +62,52 @@ import kotlinx.coroutines.withContext
 import com.example.matchmovie.components.MovieResultItem
 import com.example.matchmovie.components.MovieCard
 import com.example.matchmovie.enumentity.MovieMood
+import com.example.matchmovie.network.dto.SingleTvSeriesResultDto
+import com.example.matchmovie.network.dto.toMovieCardDto
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.example.matchmovie.utils.YOUTUBE_BASE_URL
 
+private enum class HomeContentType {
+    Film,
+    TvSeries
+}
+
 @Composable
 fun HomeScreen(
     dao: FilmDAO,
-    onMovieSelected: suspend (SingleMovieResultDto, Boolean) -> Unit
+    onMovieSelected: suspend (SingleMovieResultDto, Boolean) -> Unit,
+    onTvSeriesSelected: suspend (SingleTvSeriesResultDto) -> Unit
 ) {
     var movies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
+    var tvSeries by remember { mutableStateOf<List<SingleTvSeriesResultDto>>(emptyList()) }
 
     // State per memorizzare i film più popolari mediante apposito endpoint
     var popularMovies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
 
     var upComingMovies by remember { mutableStateOf<List<SingleMovieResultDto>>(emptyList()) }
+    var popularTvSeries by remember { mutableStateOf<List<SingleTvSeriesResultDto>>(emptyList()) }
+    var topRatedTvSeries by remember { mutableStateOf<List<SingleTvSeriesResultDto>>(emptyList()) }
 
     var isRefreshing by remember { mutableStateOf(false) }
     var isLoadingPopularMovies by remember { mutableStateOf(true) }
     var isLoadingUpcomingMovies by remember { mutableStateOf(true) }
+    var isLoadingPopularTvSeries by remember { mutableStateOf(true) }
+    var isLoadingTopRatedTvSeries by remember { mutableStateOf(true) }
     var refreshError by remember { mutableStateOf<String?>(null) }
     var popularMoviesError by remember { mutableStateOf<String?>(null) }
     var upcomingMoviesError by remember { mutableStateOf<String?>(null) }
+    var popularTvSeriesError by remember { mutableStateOf<String?>(null) }
+    var topRatedTvSeriesError by remember { mutableStateOf<String?>(null) }
     var filmString by remember { mutableStateOf("") }
     var hasSubmittedSearch by remember { mutableStateOf(false) }
     var trailerUrl by remember { mutableStateOf<String?>(null)}
+    var selectedContentType by remember { mutableStateOf(HomeContentType.Film) }
 
     // Mappa <ID Genre, Genre String>
     var genresById by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
+    var tvGenresById by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -151,6 +169,17 @@ fun HomeScreen(
         }
     }
 
+    fun applyMoodToTvSeries(
+        series: List<SingleTvSeriesResultDto>,
+        genreNamesById: Map<Int, String> = tvGenresById
+    ): List<SingleTvSeriesResultDto> {
+        return series.map { tv ->
+            tv.copy(
+                mood = mapMovieGenresToMood(tv.genre_ids, genreNamesById)
+            )
+        }
+    }
+
     // Recupero dei generi mediante API del backend
     suspend fun obtainGenres(): Map<Int, String> {
         return try {
@@ -167,6 +196,23 @@ fun HomeScreen(
             loadedGenresById
         } catch (e: Exception) {
             Log.e("SearchScreen", "Unable to load movie genres", e)
+            emptyMap()
+        }
+    }
+
+    suspend fun obtainTvSeriesGenres(): Map<Int, String> {
+        return try {
+            val response = withContext(Dispatchers.IO) {
+                RetrofitInstance.api.getTvSeriesGenres()
+            }
+
+            val loadedGenresById = response.genres.associate { genre ->
+                genre.id to genre.name
+            }
+            tvGenresById = loadedGenresById
+            loadedGenresById
+        } catch (e: Exception) {
+            Log.e("HomeScreen", "Unable to load TV series genres", e)
             emptyMap()
         }
     }
@@ -224,6 +270,42 @@ fun HomeScreen(
             isLoadingUpcomingMovies = false
         }
     }
+
+    suspend fun obtainPopularTvSeries(genreNamesById: Map<Int, String> = tvGenresById) {
+        isLoadingPopularTvSeries = true
+        popularTvSeriesError = null
+
+        try {
+            val response = withContext(Dispatchers.IO) {
+                RetrofitInstance.api.getPopularTvSeries()
+            }
+
+            popularTvSeries = applyMoodToTvSeries(response.results, genreNamesById)
+        } catch (e: Exception) {
+            Log.e("HomeScreen", "Unable to load popular TV series", e)
+            popularTvSeriesError = "Unable to load popular TV series"
+        } finally {
+            isLoadingPopularTvSeries = false
+        }
+    }
+
+    suspend fun obtainTopRatedTvSeries(genreNamesById: Map<Int, String> = tvGenresById) {
+        isLoadingTopRatedTvSeries = true
+        topRatedTvSeriesError = null
+
+        try {
+            val response = withContext(Dispatchers.IO) {
+                RetrofitInstance.api.getTopRatedTvSeries()
+            }
+
+            topRatedTvSeries = applyMoodToTvSeries(response.results, genreNamesById)
+        } catch (e: Exception) {
+            Log.e("HomeScreen", "Unable to load top rated TV series", e)
+            topRatedTvSeriesError = "Unable to load top rated TV series"
+        } finally {
+            isLoadingTopRatedTvSeries = false
+        }
+    }
     
 
     // Funzione per ottenere i film ricercati mediante Query dell'utente
@@ -255,6 +337,33 @@ fun HomeScreen(
         }
     }
 
+    suspend fun obtainSearchedTvSeries() {
+        if (filmString.isBlank()) {
+            tvSeries = emptyList()
+            refreshError = null
+            return
+        }
+
+        isRefreshing = true
+        refreshError = null
+
+        try {
+            val genreNamesById = tvGenresById.ifEmpty {
+                obtainTvSeriesGenres()
+            }
+
+            val response = withContext(Dispatchers.IO) {
+                RetrofitInstance.api.searchTvSeries(filmString)
+            }
+
+            tvSeries = applyMoodToTvSeries(response.results, genreNamesById)
+        } catch (e: Exception) {
+            refreshError = "Unable to search TV series, please try again."
+        } finally {
+            isRefreshing = false
+        }
+    }
+
     suspend fun watchFilmTrailer(filmId: Int): String? {
         return withContext(Dispatchers.IO) {
             val response = RetrofitInstance.api.getMovieTrailer(filmId)
@@ -266,11 +375,25 @@ fun HomeScreen(
 
     }
 
+    suspend fun watchTvSeriesTrailer(seriesId: Int): String? {
+        return withContext(Dispatchers.IO) {
+            val response = RetrofitInstance.api.getTvSeriesTrailer(seriesId)
+
+            response.key
+                ?.takeIf { it.isNotBlank() }
+                ?.let { YOUTUBE_BASE_URL + it }
+        }
+    }
+
 
     LaunchedEffect(Unit) {
         val genreNamesById = obtainGenres()
         obtainFamousFilms(genreNamesById)
         obtainUpcomingFilms(genreNamesById)
+
+        val tvGenreNamesById = obtainTvSeriesGenres()
+        obtainPopularTvSeries(tvGenreNamesById)
+        obtainTopRatedTvSeries(tvGenreNamesById)
     }
 
     // Film in primo piano: prendo dalla lista dei film popolari quello con data di uscita più recente
@@ -288,6 +411,14 @@ fun HomeScreen(
 
         // Fallback in caso non ottenga nulla dal filter precedente
         ?: popularMovies.maxByOrNull { movie -> movie.release_date.orEmpty() }
+
+    val featuredTvSeries = popularTvSeries
+        .filter { series ->
+            val firstAirDate = series.first_air_date
+            !firstAirDate.isNullOrBlank() && firstAirDate <= todayIso
+        }
+        .maxByOrNull { series -> series.first_air_date.orEmpty() }
+        ?: popularTvSeries.maxByOrNull { series -> series.first_air_date.orEmpty() }
 
 
 
@@ -309,9 +440,31 @@ fun HomeScreen(
             isSearching = isRefreshing,
             onSearch = {
                 coroutineScope.launch {
-                    obtainSearchedFilms()
+                    when (selectedContentType) {
+                        HomeContentType.Film -> obtainSearchedFilms()
+                        HomeContentType.TvSeries -> obtainSearchedTvSeries()
+                    }
                     hasSubmittedSearch = true
                 }
+            },
+            placeholder = if (selectedContentType == HomeContentType.Film) {
+                "Find films..."
+            } else {
+                "Find TV series..."
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        HomeContentTypeSwitch(
+            selectedContentType = selectedContentType,
+            onContentTypeSelected = { contentType ->
+                selectedContentType = contentType
+                hasSubmittedSearch = false
+                refreshError = null
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -336,7 +489,7 @@ fun HomeScreen(
             // Finchè l'utente non ricerca un film, mostro quelli popolari
             if (!hasSubmittedSearch) {
 
-                if (isLoadingPopularMovies || isLoadingUpcomingMovies) {
+                if (selectedContentType == HomeContentType.Film && (isLoadingPopularMovies || isLoadingUpcomingMovies)) {
 
                     // Mostro lo schermo di caricamento durante il recupero dei dati
                     item {
@@ -345,7 +498,7 @@ fun HomeScreen(
                             modifier = Modifier.fillParentMaxSize()
                         )
                     }
-                } else {
+                } else if (selectedContentType == HomeContentType.Film) {
                     featuredMovie?.let { movie ->
                         item {
 
@@ -437,8 +590,87 @@ fun HomeScreen(
                             )
                         }
                     }
+                } else if (isLoadingPopularTvSeries || isLoadingTopRatedTvSeries) {
+                    item {
+                        LoadingScreen(
+                            message = "Loading TV series...",
+                            modifier = Modifier.fillParentMaxSize()
+                        )
+                    }
+                } else {
+                    featuredTvSeries?.let { series ->
+                        item {
+                            FeaturedMovieCard(
+                                movie = series.toMovieCardDto(),
+                                onMovieSelected = { _ ->
+                                    onTvSeriesSelected(series)
+                                },
+                                badgeText = "Featured TV series",
+                                onWatchTrailer = { seriesId ->
+                                    trailerUrl = watchTvSeriesTrailer(seriesId)
+
+                                    trailerUrl?.let {
+                                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(trailerUrl))
+                                        context.startActivity(intent)
+                                    }
+                                }
+                            )
+                        }
+                    }
+
+                    item {
+                        if (popularTvSeries.isNotEmpty()) {
+                            TvSeriesSection(
+                                title = "Popular TV series",
+                                series = popularTvSeries,
+                                onTvSeriesSelected = onTvSeriesSelected
+                            )
+                        } else {
+                            Text(
+                                text = "No popular TV series available right now...",
+                                color = Color(0xFFE1BEBF),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    popularTvSeriesError?.let { error ->
+                        item {
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
+
+                    item {
+                        if (topRatedTvSeries.isNotEmpty()) {
+                            TvSeriesSection(
+                                title = "Top rated TV series",
+                                series = topRatedTvSeries,
+                                onTvSeriesSelected = onTvSeriesSelected
+                            )
+                        } else {
+                            Text(
+                                text = "No top rated TV series available right now...",
+                                color = Color(0xFFE1BEBF),
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
+
+                    topRatedTvSeriesError?.let { error ->
+                        item {
+                            Text(
+                                text = error,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    }
                 }
-            } else if (movies.isNotEmpty()) {
+            } else if (selectedContentType == HomeContentType.Film && movies.isNotEmpty()) {
                 // Renderizzo la lista di films ottenuti dall'API solo nel momento in cui l'utente invia la ricerca
                 items(movies) { movie ->
                     MovieResultItem(
@@ -448,11 +680,25 @@ fun HomeScreen(
                         }
                     )
                 }
+            } else if (selectedContentType == HomeContentType.TvSeries && tvSeries.isNotEmpty()) {
+                items(tvSeries) { series ->
+                    MovieResultItem(
+                        movie = series.toMovieCardDto(),
+                        onMovieSelected = { _ ->
+                            onTvSeriesSelected(series)
+                        },
+                        detailsButtonText = "TV Series Details"
+                    )
+                }
             } else {
                 item {
                     InfoMessage(
                         imageRes = com.example.matchmovie.R.drawable.not_found,
-                        "No film matches the search..."
+                        if (selectedContentType == HomeContentType.Film) {
+                            "No film matches the search..."
+                        } else {
+                            "No TV series matches the search..."
+                        }
                     )
                 }
             }
@@ -468,6 +714,7 @@ private fun HomeSearchBar(
     onValueChange: (String) -> Unit,
     isSearching: Boolean,
     onSearch: () -> Unit,
+    placeholder: String,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -507,7 +754,7 @@ private fun HomeSearchBar(
                     // Se non c'è alcuna ricerca nel TextField, mostro placeholder
                     if (value.isBlank()) {
                         Text(
-                            text = "Find films...",
+                            text = placeholder,
                             color = Color(0x80E1BEBF),
                             style = MaterialTheme.typography.bodyMedium
                         )
@@ -537,13 +784,80 @@ private fun HomeSearchBar(
     }
 }
 
+@Composable
+private fun HomeContentTypeSwitch(
+    selectedContentType: HomeContentType,
+    onContentTypeSelected: (HomeContentType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(50))
+            .background(Color(0xB3232B33))
+            .border(1.dp, Color(0x1AF7F9FC), RoundedCornerShape(50))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        SwitchOptionButton(
+            text = "Film",
+            selected = selectedContentType == HomeContentType.Film,
+            onClick = { onContentTypeSelected(HomeContentType.Film) },
+            modifier = Modifier.weight(1f)
+        )
+        SwitchOptionButton(
+            text = "Tv Series",
+            selected = selectedContentType == HomeContentType.TvSeries,
+            onClick = { onContentTypeSelected(HomeContentType.TvSeries) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun SwitchOptionButton(
+    text: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val animatedContainerColor by animateColorAsState(
+        targetValue = if (selected) Color(0xFFE84A5F) else Color.Transparent,
+        animationSpec = tween(durationMillis = 250),
+        label = "switchContainerColor"
+    )
+    val animatedContentColor by animateColorAsState(
+        targetValue = if (selected) Color.White else Color(0xFFE1BEBF),
+        animationSpec = tween(durationMillis = 250),
+        label = "switchContentColor"
+    )
+
+    Button(
+        onClick = onClick,
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = animatedContainerColor,
+            contentColor = animatedContentColor
+        ),
+        contentPadding = PaddingValues(vertical = 10.dp)
+    ) {
+        Text(
+            text = text,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.labelMedium
+        )
+    }
+}
+
 
 // Composable per mostrare la Card principale riguardante il film in primo piano
 @Composable
 private fun FeaturedMovieCard(
     movie: SingleMovieResultDto,
-    onMovieSelected: suspend (SingleMovieResultDto) -> Unit,
-    onWatchTrailer: suspend (Int) -> Unit
+    onMovieSelected: (suspend (SingleMovieResultDto) -> Unit)?,
+    onWatchTrailer: suspend (Int) -> Unit,
+    badgeText: String = "Latest release"
 ) {
     val coroutineScope = rememberCoroutineScope()
     val backdropUrl = movie.backdrop_path?.let { "https://image.tmdb.org/t/p/w780$it" }
@@ -567,11 +881,17 @@ private fun FeaturedMovieCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clickable {
-                    coroutineScope.launch {
-                        onMovieSelected(movie)
+                .then(
+                    if (onMovieSelected != null) {
+                        Modifier.clickable {
+                            coroutineScope.launch {
+                                onMovieSelected(movie)
+                            }
+                        }
+                    } else {
+                        Modifier
                     }
-                }
+                )
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
@@ -590,7 +910,7 @@ private fun FeaturedMovieCard(
                 .padding(18.dp)
         ) {
             Text(
-                text = "Latest release",
+                text = badgeText,
                 color = Color(0xFF70F8E8),
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
@@ -662,7 +982,8 @@ private fun FeaturedMovieCard(
 private fun MovieSection(
     title: String,
     movies: List<SingleMovieResultDto>,
-    onMovieSelected: suspend (SingleMovieResultDto) -> Unit
+    onMovieSelected: suspend (SingleMovieResultDto) -> Unit,
+    enableSelection: Boolean = true
 ) {
     Column(
         modifier = Modifier
@@ -681,6 +1002,36 @@ private fun MovieSection(
                 MovieCard(
                     movie = movie,
                     onMovieSelected = onMovieSelected,
+                    enableSelection = enableSelection
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TvSeriesSection(
+    title: String,
+    series: List<SingleTvSeriesResultDto>,
+    onTvSeriesSelected: suspend (SingleTvSeriesResultDto) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 28.dp)
+    ) {
+        SectionHeader(title = title)
+
+        LazyRow(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            contentPadding = PaddingValues(end = 8.dp)
+        ) {
+            items(series) { tvSeries ->
+                MovieCard(
+                    movie = tvSeries.toMovieCardDto(),
+                    onMovieSelected = { _ ->
+                        onTvSeriesSelected(tvSeries)
+                    }
                 )
             }
         }
