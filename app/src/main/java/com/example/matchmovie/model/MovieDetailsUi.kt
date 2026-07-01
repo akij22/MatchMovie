@@ -3,6 +3,12 @@ package com.example.matchmovie.model
 import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.enumentity.MovieMood
 import com.example.matchmovie.network.dto.SingleMovieResultDto
+import com.example.matchmovie.network.dto.SingleTvSeriesResultDto
+
+enum class MediaType {
+    Movie,
+    TvSeries
+}
 
 data class MovieDetailsUi(
     val id: Int,
@@ -14,6 +20,7 @@ data class MovieDetailsUi(
     val voteAverage: Double?,
     val originalLanguage: String?,
     val mood: MovieMood,
+    val mediaType: MediaType = MediaType.Movie,
     val userRating: Int? = null
 )
 
@@ -29,7 +36,23 @@ fun SingleMovieResultDto.toMovieDetailsUi(): MovieDetailsUi {
         releaseDate = release_date,
         voteAverage = vote_average,
         originalLanguage = original_language,
-        mood = mood
+        mood = mood,
+        mediaType = MediaType.Movie
+    )
+}
+
+fun SingleTvSeriesResultDto.toMovieDetailsUi(): MovieDetailsUi {
+    return MovieDetailsUi(
+        id = id,
+        title = name,
+        overview = overview,
+        posterPath = poster_path,
+        backdropPath = backdrop_path,
+        releaseDate = first_air_date,
+        voteAverage = vote_average,
+        originalLanguage = original_language,
+        mood = mood,
+        mediaType = MediaType.TvSeries
     )
 }
 
@@ -48,6 +71,7 @@ fun UserMovie.toMovieDetailsUi(): MovieDetailsUi {
         voteAverage = null,
         originalLanguage = null,
         mood = mood,
+        mediaType = MediaType.Movie,
         userRating = userRating
     )
 }

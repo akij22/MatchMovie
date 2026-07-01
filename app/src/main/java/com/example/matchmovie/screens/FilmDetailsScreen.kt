@@ -53,6 +53,7 @@ import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.network.dto.MovieCastMemberDto
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieCrewMemberDto
+import com.example.matchmovie.model.MediaType
 import com.example.matchmovie.model.MovieDetailsUi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -71,6 +72,10 @@ fun FilmDetailScreen(
 ) {
     val backdropUrl = movie.backdropPath?.let { "https://image.tmdb.org/t/p/w780$it" }
     val posterUrl = movie.posterPath?.let { "https://image.tmdb.org/t/p/w500$it" }
+    val isTvSeries = movie.mediaType == MediaType.TvSeries
+    val releaseDateLabel = if (isTvSeries) "First air date not available" else "Release date not available"
+    val descriptionTitle = if (isTvSeries) "TV Series Description" else "Film Description"
+    val savedLabel = if (isTvSeries) "series" else "film"
     var userRating by remember { mutableIntStateOf(0) }
     var isMovieSaved by remember { mutableStateOf(false) }
 
@@ -149,6 +154,9 @@ fun FilmDetailScreen(
                             InfoChip(text = originalLanguage.uppercase())
                         }
                         InfoChip(text = movie.mood.toString())
+                        if (isTvSeries) {
+                            InfoChip(text = "TV SERIES")
+                        }
                     }
 
                     Text(
@@ -162,7 +170,7 @@ fun FilmDetailScreen(
                     )
 
                     Text(
-                        text = movie.releaseDate ?: "Release date not available",
+                        text = movie.releaseDate ?: releaseDateLabel,
                         color = Color(0xFFE1BEBF),
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -179,7 +187,7 @@ fun FilmDetailScreen(
 
                 // Sezione riguardante la breve descrizione del film
                 Text(
-                    text = "Film Description",
+                    text = descriptionTitle,
                     color = Color(0xFFF7F9FC),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
@@ -243,14 +251,19 @@ fun FilmDetailScreen(
                 }
             }
 
-            // Ottengo solo il regista del film, prendendolo dalla lista `crew` che è di tipo `MovieCrewMemberDto`
-            val director = cast.crew.firstOrNull { it.job == "Director" }
+            val mainCrewMember = if (isTvSeries) {
+                cast.crew.firstOrNull { it.job == "Creator" }
+                    ?: cast.crew.firstOrNull { it.job == "Executive Producer" }
+                    ?: cast.crew.firstOrNull()
+            } else {
+                cast.crew.firstOrNull { it.job == "Director" }
+            }
 
-            if (director != null) {
+            if (mainCrewMember != null) {
                 item {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 30.dp)) {
                         Text(
-                            text = "Director",
+                            text = if (isTvSeries) "Creator" else "Director",
                             color = Color(0xFFF7F9FC),
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
@@ -258,7 +271,7 @@ fun FilmDetailScreen(
                         Spacer(modifier = Modifier.height(14.dp))
 
                         // Mostro il regista mediante apposito Composable
-                        DirectorMemberItem(member = director)
+                        DirectorMemberItem(member = mainCrewMember)
                     }
                 }
             }
@@ -291,7 +304,7 @@ fun FilmDetailScreen(
                     // Se film è gia presente sul db dell'utente loggato, non permetto il salvataggio
                     if (isMovieSaved) {
                         Text(
-                            text = "Film already saved in MyList",
+                            text = "${savedLabel.replaceFirstChar { it.uppercase() }} already saved in MyList",
                             color = Color(0xFFE1BEBF),
                             style = MaterialTheme.typography.bodyMedium,
                             fontWeight = FontWeight.SemiBold

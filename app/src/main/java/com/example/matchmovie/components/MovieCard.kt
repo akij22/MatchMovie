@@ -34,7 +34,8 @@ import kotlinx.coroutines.launch
 fun MovieCard (
     movie: SingleMovieResultDto,
     onMovieSelected: suspend (SingleMovieResultDto) -> Unit,
-    showReleaseDateBadge: Boolean = false
+    showReleaseDateBadge: Boolean = false,
+    enableSelection: Boolean = true
 ) {
     val coroutineScope = rememberCoroutineScope()
 
@@ -45,8 +46,8 @@ fun MovieCard (
         ?.take(4)
         ?: "N/A"
 
-    Column(
-        modifier = Modifier
+    val cardModifier = if (enableSelection) {
+        Modifier
             .width(160.dp)
             .clickable {
                 coroutineScope.launch {
@@ -55,6 +56,12 @@ fun MovieCard (
                     onMovieSelected(movie)
                 }
             }
+    } else {
+        Modifier.width(160.dp)
+    }
+
+    Column(
+        modifier = cardModifier
     ) {
         Box(
             modifier = Modifier

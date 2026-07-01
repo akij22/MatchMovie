@@ -43,12 +43,14 @@ import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.enumentity.Screen
 import com.example.matchmovie.model.ChatMessage
+import com.example.matchmovie.model.MediaType
 import com.example.matchmovie.model.MovieDetailsUi
 import com.example.matchmovie.model.toMovieDetailsUi
 import com.example.matchmovie.network.AuthToken
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.SingleMovieResultDto
+import com.example.matchmovie.network.dto.SingleTvSeriesResultDto
 import com.example.matchmovie.screens.AIChatScreen
 import com.example.matchmovie.screens.ExploreScreen
 import com.example.matchmovie.screens.FilmDetailScreen
@@ -155,11 +157,14 @@ class MainActivity : ComponentActivity() {
                 backScreen: Screen
             ) {
                 castByMovie = withContext(Dispatchers.IO) {
-                    RetrofitInstance.api.getMovieCredits(movieDetails.id)
+                    when (movieDetails.mediaType) {
+                        MediaType.Movie -> RetrofitInstance.api.getMovieCredits(movieDetails.id)
+                        MediaType.TvSeries -> RetrofitInstance.api.getTvSeriesCredits(movieDetails.id)
+                    }
                 }
 
                 selectedMovie = movieDetails
-                selectedMovieCanBeSaved = canBeSaved
+                selectedMovieCanBeSaved = canBeSaved && movieDetails.mediaType == MediaType.Movie
                 selectedMovieBackScreen = backScreen
                 currentScreen = Screen.FilmDetailsScreen
             }
@@ -171,6 +176,14 @@ class MainActivity : ComponentActivity() {
                 openMovieDetails(
                     movieDetails = movie.toMovieDetailsUi(),
                     canBeSaved = !isUpcomingMovie,
+                    backScreen = Screen.HomeScreen
+                )
+            }
+
+            suspend fun onTvSeriesSelected(series: SingleTvSeriesResultDto) {
+                openMovieDetails(
+                    movieDetails = series.toMovieDetailsUi(),
+                    canBeSaved = false,
                     backScreen = Screen.HomeScreen
                 )
             }
@@ -249,7 +262,8 @@ class MainActivity : ComponentActivity() {
 
                                             Screen.HomeScreen -> HomeScreen(
                                                 dao,
-                                                ::onMovieSelected
+                                                ::onMovieSelected,
+                                                ::onTvSeriesSelected
                                             )
 
                                             Screen.ExploreScreen -> currentUser?.let { user ->
@@ -421,6 +435,5 @@ private fun Screen.isBottomTab(): Boolean {
         this == Screen.ChatScreen ||
         this == Screen.ProfileScreen
 }
-
 
 

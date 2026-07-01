@@ -10,6 +10,7 @@ import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieResponseDto
 import com.example.matchmovie.network.dto.RegisterRequestDto
 import com.example.matchmovie.network.dto.RegisterResponseDto
+import com.example.matchmovie.network.dto.TvSeriesResponseDto
 import com.example.matchmovie.network.dto.TrailerKeyDto
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -71,5 +72,29 @@ interface TmdbMovieApi {
     suspend fun getMovieTrailer(
         @Path("movie_id") movieId: Int,
     ): TrailerKeyDto
+
+    @GET("tv-series/search")
+    suspend fun searchTvSeries(
+        @Query("query") query: String,
+    ): TvSeriesResponseDto
+
+    @GET("tv-series/popular")
+    suspend fun getPopularTvSeries(): TvSeriesResponseDto
+
+    @GET("tv-series/top-rated")
+    suspend fun getTopRatedTvSeries(): TvSeriesResponseDto
+
+    @GET("tv-series/{series_id}/credits")
+    suspend fun getTvSeriesCredits(
+        @Path("series_id") seriesId: Int,
+    ): MovieCreditsDto
+
+    @GET("tv-series/{series_id}/videos")
+    suspend fun getTvSeriesTrailer(
+        @Path("series_id") seriesId: Int,
+    ): TrailerKeyDto
+
+    @GET("tv-series/genres")
+    suspend fun getTvSeriesGenres(): GenreResponseDto
 
 }
