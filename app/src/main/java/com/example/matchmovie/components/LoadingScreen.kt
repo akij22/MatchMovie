@@ -1,6 +1,5 @@
 package com.example.matchmovie.components
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -13,23 +12,23 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.example.matchmovie.ui.theme.MatchMovieBackground
 import com.example.matchmovie.ui.theme.MatchMoviePrimary
 
 /**
  * Composable generico per mostrare uno schermo di caricamento con uno spinner.
  *
- * @param message Messaggio mostrato sotto lo spinner (default: "Loading...").
+ * Lo sfondo è trasparente per integrarsi omogeneamente con la schermata che lo ospita.
+ *
+ * @param message Messaggio mostrato sotto lo spinner (default: "Loading").
  * @param modifier Modifier opzionale per personalizzare la disposizione.
  */
 @Composable
 fun LoadingScreen(
-    message: String = "Loading...",
+    message: String = "Loading",
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier
-            .background(MatchMovieBackground),
+        modifier = modifier,
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
