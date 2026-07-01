@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.matchmovie.R
 import com.example.matchmovie.components.InfoMessage
+import com.example.matchmovie.components.LoadingScreen
 import com.example.matchmovie.components.MovieDaoItem
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
@@ -43,12 +44,15 @@ fun MyListScreen (
 ) {
 
     var userFilmList by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
     val coroutineScope = rememberCoroutineScope()
 
 
     // Caricamento dei film dell'utente alla prima apertura di `MyListScreen` mediante una coroutine dedicata
     LaunchedEffect(currentUser._id) {
+        isLoading = true
         userFilmList = dao.getMoviesByUser(currentUser._id)
+        isLoading = false
     }
 
 
@@ -59,8 +63,15 @@ fun MyListScreen (
             .background(MatchMovieBackground)
             .fillMaxWidth()
     ) {
-        if (userFilmList.isEmpty()) {
-            item {
+        when {
+            isLoading -> item {
+                LoadingScreen(
+                    message = "Loading your movies...",
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+
+            userFilmList.isEmpty() -> item {
                 InfoMessage(R.drawable.mylist_notfound, "No movies saved yet")
             }
         }

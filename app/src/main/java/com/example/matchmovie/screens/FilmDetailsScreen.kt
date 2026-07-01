@@ -46,6 +46,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.example.matchmovie.components.LoadingScreen
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
@@ -208,14 +209,14 @@ fun FilmDetailScreen(
         }
 
 
-        // Sezione per il caricamento dl Cast e del regista
+        // Sezione per il caricamento del Cast e del regista
         if (cast == null) {
             item {
-                Text(
-                    text = "Loading cast...",
-                    color = Color(0xFFAAB6C2),
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 24.dp)
+                LoadingScreen(
+                    message = "Loading cast...",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(200.dp)
                 )
             }
         } else {

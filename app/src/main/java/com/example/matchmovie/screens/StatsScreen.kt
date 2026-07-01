@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
+import com.example.matchmovie.components.LoadingScreen
 import com.example.matchmovie.components.MovieDaoItem
 import com.example.matchmovie.components.ProfileStatCard
 import com.example.matchmovie.database.FilmDAO
@@ -79,9 +81,12 @@ fun StatsScreen(
     var topRatedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
     var recentlyAddedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String>("") }
+    var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(user?._id) {
         val currentUser = user ?: return@LaunchedEffect
+
+        isLoading = true
         try {
 
             val loadedMovies = withContext(Dispatchers.IO) {
@@ -110,6 +115,8 @@ fun StatsScreen(
             topRatedMovies = emptyList()
             recentlyAddedMovies = emptyList()
             errorMessage = "Unable to load local information, please try again"
+        } finally {
+            isLoading = false
         }
     }
 
@@ -144,13 +151,19 @@ fun StatsScreen(
 
     val hasData = savedMovies.isNotEmpty()
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MatchMovieBackground),
-        contentPadding = PaddingValues(24.dp),
-        verticalArrangement = Arrangement.spacedBy(24.dp)
-    ) {
+    if (isLoading) {
+        LoadingScreen(
+            message = "Loading stats...",
+            modifier = Modifier.fillMaxSize()
+        )
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MatchMovieBackground),
+            contentPadding = PaddingValues(24.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
         item {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -328,6 +341,7 @@ fun StatsScreen(
             }
         }
     }
+}
 }
 
 @Composable
