@@ -19,22 +19,30 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.example.matchmovie.ui.theme.MatchMovieSecondary
 import coil3.compose.AsyncImage
 import com.example.matchmovie.components.LoadingScreen
@@ -46,11 +54,14 @@ import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.database.UserTvSerie
 import com.example.matchmovie.enumentity.MovieMood
 import com.example.matchmovie.ui.theme.MatchMovieBackground
+import com.example.matchmovie.ui.theme.MatchMovieCard
 import com.example.matchmovie.ui.theme.MatchMovieLightText
 import com.example.matchmovie.ui.theme.MatchMovieMutedButton
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
 import com.example.matchmovie.ui.theme.MatchMoviePrimary
+import com.example.matchmovie.ui.theme.MatchMovieSurface
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -58,9 +69,11 @@ fun ProfileScreen(
     user: User?,
     onLogout: () -> Unit,
     dao: FilmDAO,
-    onOpenStats: () -> Unit
+    onOpenStats: () -> Unit,
+    onUserUpdated: (User) -> Unit
 ) {
 
+    val coroutineScope = rememberCoroutineScope()
     var savedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
     var moviesByMood by remember { mutableStateOf<Map<MovieMood, List<UserMovie>>>(emptyMap()) }
     var topRatedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
@@ -71,6 +84,10 @@ fun ProfileScreen(
     var recentlyAddedTvSeries by remember { mutableStateOf<List<UserTvSerie>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String>("") }
     var isLoading by remember { mutableStateOf(true) }
+    var profileMessage by remember { mutableStateOf("") }
+    var isSavingProfile by remember { mutableStateOf(false) }
+    var showImageDialog by remember { mutableStateOf(false) }
+    var showBioDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(user?._id) {
         val currentUser = user ?: return@LaunchedEffect
@@ -169,6 +186,65 @@ fun ProfileScreen(
     val highestRatedTvSeries = topRatedTvSeries.firstOrNull()?.title ?: "-"
     val firstAddedTvSeries = savedTvSeries.minByOrNull { tvSerie -> tvSerie._id }?.title ?: "-"
 
+    fun updateProfile(profileImage: String?, bio: String?) {
+        val currentUser = user ?: return
+        coroutineScope.launch {
+            isSavingProfile = true
+            profileMessage = ""
+            try {
+                val updatedUser = currentUser.copy(
+                    profileImage = profileImage?.trim()?.takeIf { it.isNotBlank() },
+                    bio = bio?.trim()?.takeIf { it.isNotBlank() }
+                )
+
+                withContext(Dispatchers.IO) {
+                    dao.updateUserProfile(
+                        userId = updatedUser._id,
+                        profileImage = updatedUser.profileImage,
+                        bio = updatedUser.bio
+                    )
+                }
+
+                onUserUpdated(updatedUser)
+                profileMessage = "Profile updated"
+                showImageDialog = false
+                showBioDialog = false
+            } catch (e: Exception) {
+                profileMessage = "Unable to update profile, please try again"
+            } finally {
+                isSavingProfile = false
+            }
+        }
+    }
+
+    if (showImageDialog) {
+        EditProfileDialog(
+            title = "Edit profile picture",
+            label = "Image URL",
+            initialValue = user?.profileImage.orEmpty(),
+            singleLine = true,
+            confirmEnabled = !isSavingProfile,
+            onDismiss = { showImageDialog = false },
+            onConfirm = { imageUrl ->
+                updateProfile(profileImage = imageUrl, bio = user?.bio)
+            }
+        )
+    }
+
+    if (showBioDialog) {
+        EditProfileDialog(
+            title = "Edit bio",
+            label = "Bio",
+            initialValue = user?.bio.orEmpty(),
+            singleLine = false,
+            confirmEnabled = !isSavingProfile,
+            onDismiss = { showBioDialog = false },
+            onConfirm = { bio ->
+                updateProfile(profileImage = user?.profileImage, bio = bio)
+            }
+        )
+    }
+
     if (isLoading) {
         LoadingScreen(
             message = "Loading profile...",
@@ -241,6 +317,41 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(18.dp))
 
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Button(
+                        onClick = { showImageDialog = true },
+                        enabled = user != null && !isSavingProfile,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MatchMoviePrimary,
+                            contentColor = Color.White,
+                            disabledContainerColor = MatchMovieMutedButton,
+                            disabledContentColor = MatchMovieMutedText
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Edit picture")
+                    }
+
+                    Button(
+                        onClick = { showBioDialog = true },
+                        enabled = user != null && !isSavingProfile,
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MatchMovieMutedButton,
+                            contentColor = MatchMovieLightText,
+                            disabledContainerColor = MatchMovieMutedButton,
+                            disabledContentColor = MatchMovieMutedText
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Edit bio")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
                 Text(
                     text = user?.name.orEmpty(),
                     color = MatchMovieLightText,
@@ -262,6 +373,25 @@ fun ProfileScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 18.dp)
+                    )
+                } ?: run {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = "No bio yet",
+                        color = MatchMovieMutedText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                profileMessage.takeIf { it.isNotBlank() }?.let { message ->
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Text(
+                        text = message,
+                        color = MatchMovieMutedText,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
@@ -495,4 +625,91 @@ fun ProfileScreen(
         }
     }
 }
+}
+
+@Composable
+private fun EditProfileDialog(
+    title: String,
+    label: String,
+    initialValue: String,
+    singleLine: Boolean,
+    confirmEnabled: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: (String) -> Unit
+) {
+    var value by remember(initialValue) { mutableStateOf(initialValue) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MatchMovieSurface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = title,
+                    color = MatchMovieLightText,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                OutlinedTextField(
+                    value = value,
+                    onValueChange = { value = it },
+                    label = { Text(label) },
+                    singleLine = singleLine,
+                    minLines = if (singleLine) 1 else 4,
+                    maxLines = if (singleLine) 1 else 6,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = MatchMovieLightText,
+                        unfocusedTextColor = MatchMovieLightText,
+                        focusedBorderColor = MatchMoviePrimary,
+                        unfocusedBorderColor = MatchMovieMutedButton,
+                        focusedLabelColor = MatchMoviePrimary,
+                        unfocusedLabelColor = MatchMovieMutedText,
+                        cursorColor = MatchMoviePrimary,
+                        focusedContainerColor = MatchMovieCard,
+                        unfocusedContainerColor = MatchMovieCard
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = "Cancel",
+                            color = MatchMovieMutedText,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+
+                    Button(
+                        onClick = { onConfirm(value) },
+                        enabled = confirmEnabled,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MatchMoviePrimary,
+                            contentColor = Color.White,
+                            disabledContainerColor = MatchMovieMutedButton,
+                            disabledContentColor = MatchMovieMutedText
+                        ),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Save", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
 }
