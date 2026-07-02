@@ -14,10 +14,12 @@ import com.example.matchmovie.network.dto.TvSeriesResponseDto
 import com.example.matchmovie.network.dto.TvSeriesDetailsDto
 import com.example.matchmovie.network.dto.TvSeasonDetailsDto
 import com.example.matchmovie.network.dto.TrailerKeyDto
+import com.example.matchmovie.network.dto.UpdateProfileRequestDto
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.Query
 
 interface TmdbMovieApi {
@@ -63,6 +65,11 @@ interface TmdbMovieApi {
 
     @GET("auth/me")
     suspend fun getCurrentUser(): AuthUserDto
+
+    @PUT("auth/me")
+    suspend fun updateCurrentUser(
+        @Body request: UpdateProfileRequestDto
+    ): AuthUserDto
 
 
     @GET("movies/{movie_id}/recommendations")

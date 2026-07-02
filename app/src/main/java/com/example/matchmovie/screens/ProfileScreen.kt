@@ -62,6 +62,8 @@ import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.database.UserTvSerie
 import com.example.matchmovie.enumentity.MovieMood
+import com.example.matchmovie.network.RetrofitInstance
+import com.example.matchmovie.network.dto.UpdateProfileRequestDto
 import com.example.matchmovie.ui.theme.MatchMovieBackground
 import com.example.matchmovie.ui.theme.MatchMovieCard
 import com.example.matchmovie.ui.theme.MatchMovieLightText
@@ -217,9 +219,23 @@ fun ProfileScreen(
             isSavingProfile = true
             profileMessage = ""
             try {
+                val normalizedProfileImage = profileImage?.trim()?.takeIf { it.isNotBlank() }
+                val normalizedBio = bio?.trim()?.takeIf { it.isNotBlank() }
+
+                val remoteUser = withContext(Dispatchers.IO) {
+                    RetrofitInstance.api.updateCurrentUser(
+                        UpdateProfileRequestDto(
+                            profileImage = normalizedProfileImage,
+                            bio = normalizedBio
+                        )
+                    )
+                }
+
                 val updatedUser = currentUser.copy(
-                    profileImage = profileImage?.trim()?.takeIf { it.isNotBlank() },
-                    bio = bio?.trim()?.takeIf { it.isNotBlank() }
+                    name = remoteUser.name.ifBlank { currentUser.name },
+                    email = remoteUser.email,
+                    profileImage = remoteUser.profileImage,
+                    bio = remoteUser.bio
                 )
 
                 withContext(Dispatchers.IO) {
