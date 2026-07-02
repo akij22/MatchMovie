@@ -144,8 +144,6 @@ class MainActivity : ComponentActivity() {
                         currentUser = loggedUser.copy(
                             name = validatedUser.name.ifBlank { validatedUser.email },
                             email = validatedUser.email,
-                            profileImage = validatedUser.profileImage,
-                            bio = validatedUser.bio,
                         )
                         currentScreen = Screen.HomeScreen
                     }
@@ -345,6 +343,9 @@ class MainActivity : ComponentActivity() {
                                                 onOpenStats = {
                                                     currentScreen = Screen.StatsScreen
                                                 },
+                                                onUserUpdated = { updatedUser ->
+                                                    currentUser = updatedUser
+                                                },
                                                 onLogout = {
                                                     coroutineScope.launch {
                                                         withContext(Dispatchers.IO) {
@@ -462,5 +463,3 @@ private fun Screen.isBottomTab(): Boolean {
         this == Screen.ChatScreen ||
         this == Screen.ProfileScreen
 }
-
-
