@@ -38,6 +38,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.matchmovie.R
 import com.example.matchmovie.components.InfoMessage
@@ -52,15 +54,18 @@ import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.ChatRequestDto
 import com.example.matchmovie.network.dto.SingleMovieResultDto
 import com.example.matchmovie.network.dto.UserContextDto
+import com.example.matchmovie.ui.theme.MatchMovieAccent
 import com.example.matchmovie.ui.theme.MatchMovieCard
 import com.example.matchmovie.ui.theme.MatchMovieLightText
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
 import com.example.matchmovie.ui.theme.MatchMoviePrimary
+import com.example.matchmovie.ui.theme.MatchMovieSecondary
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import java.io.IOException
+import java.util.Locale
 
 
 @Composable
@@ -81,6 +86,7 @@ fun AIChatScreen(
     var isSending by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var savedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
+    val userContext = buildUserContext(currentUser, savedMovies)
 
     // Carico i film salvati dell'utente loggato per costruire il contesto da inviare all'AI
     LaunchedEffect(currentUser._id) {
@@ -101,6 +107,9 @@ fun AIChatScreen(
                 .padding(bottom = 92.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            item {
+                AIContextBanners(userContext = userContext)
+            }
 
             if (chatMessages.isEmpty()) {
                 item {
@@ -183,7 +192,7 @@ fun AIChatScreen(
                         // includendo il contesto dell'utente loggato
                         val request = ChatRequestDto(
                             messagePrompt = currentPrompt,
-                            userContext = buildUserContext(currentUser, savedMovies)
+                            userContext = userContext
                         )
 
                         onMessagePromptChange("")
@@ -242,6 +251,90 @@ fun AIChatScreen(
 }
 
 
+
+@Composable
+private fun AIContextBanners(
+    userContext: UserContextDto
+) {
+    val averageRating = String.format(Locale.US, "%.1f", userContext.averageRating)
+    val favoriteMood = userContext.favoriteMood?.toDisplayName() ?: "Not enough data"
+    val topRated = userContext.topRatedMovies.firstOrNull()?.title ?: "No saved ratings"
+    val recentlyAdded = userContext.recentlyAddedMovies
+        .take(2)
+        .joinToString(", ") { it.title }
+        .ifBlank { "No recent films" }
+
+    LazyRow(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        item {
+            ContextBanner(
+                label = "Saved films",
+                value = userContext.totalSavedMovies.toString(),
+                accentColor = MatchMoviePrimary
+            )
+        }
+        item {
+            ContextBanner(
+                label = "Avg rating",
+                value = "$averageRating/5",
+                accentColor = MatchMovieSecondary
+            )
+        }
+        item {
+            ContextBanner(
+                label = "Preference",
+                value = favoriteMood,
+                accentColor = MatchMovieAccent
+            )
+        }
+        item {
+            ContextBanner(
+                label = "Top rated",
+                value = topRated,
+                accentColor = MatchMoviePrimary
+            )
+        }
+        item {
+            ContextBanner(
+                label = "Recently added",
+                value = recentlyAdded,
+                accentColor = MatchMovieSecondary
+            )
+        }
+    }
+}
+
+@Composable
+private fun ContextBanner(
+    label: String,
+    value: String,
+    accentColor: Color
+) {
+    Column(
+        modifier = Modifier
+            .widthIn(min = 118.dp, max = 190.dp)
+            .background(
+                color = MatchMovieCard,
+                shape = RoundedCornerShape(14.dp)
+            )
+            .padding(horizontal = 12.dp, vertical = 8.dp)
+    ) {
+        Text(
+            text = label,
+            color = accentColor,
+            fontWeight = FontWeight.SemiBold
+        )
+        Text(
+            text = value,
+            color = MatchMovieLightText,
+            maxLines = 1
+        )
+    }
+}
 
 @Composable
 fun ChatMessageBox(
@@ -430,6 +523,17 @@ private fun UserMovie.toContextMovieDto(): UserContextDto.ContextMovieDto {
         rating = userRating,
         mood = mood
     )
+}
+
+private fun MovieMood.toDisplayName(): String {
+    return name
+        .lowercase()
+        .split("_")
+        .joinToString(" ") { word ->
+            word.replaceFirstChar { char ->
+                if (char.isLowerCase()) char.titlecase() else char.toString()
+            }
+        }
 }
 
 private fun Exception.toChatErrorMessage(): String {
