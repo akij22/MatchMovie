@@ -27,6 +27,23 @@ interface FilmDAO{
     @Query("SELECT EXISTS(SELECT 1 FROM UserMovie WHERE userId = :userId AND tmdbMovieId = :tmdbMovieId)")
     suspend fun isMovieSaved(userId: Int, tmdbMovieId: Int): Boolean
 
+
+    // Recupero delle serie TV salvate per uno specifico utente
+    @Insert
+    suspend fun insert(tvSerie: UserTvSerie)
+
+    @Query("SELECT * FROM UserTvSerie")
+    suspend fun getAllTvSeries(): List<UserTvSerie>
+
+    @Query("SELECT * FROM UserTvSerie WHERE userId = :userId")
+    suspend fun getTvSeriesByUser(userId: Int): List<UserTvSerie>
+
+    @Query("DELETE FROM UserTvSerie WHERE _id = :serieId")
+    suspend fun deleteUserTvSerie(serieId: Int)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM UserTvSerie WHERE userId = :userId AND tmdbSerieId = :tmdbSerieId)")
+    suspend fun isTvSerieSaved(userId: Int, tmdbSerieId: Int): Boolean
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertUser(user: User): Long
 

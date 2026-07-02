@@ -32,39 +32,38 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.matchmovie.R
-import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.database.UserTvSerie
 import com.example.matchmovie.ui.theme.MatchMovieCard
 import com.example.matchmovie.ui.theme.MatchMovieLightText
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
 import com.example.matchmovie.ui.theme.MatchMoviePrimary
 
-// Componente che rappresenta un singolo item da mostrare nella lista dei film salvati dall'utente (MyList)
+// Componente che rappresenta un singolo item da mostrare nella lista delle serie TV salvate dall'utente (MyList)
 @Composable
-fun MovieDaoItem(
-    movie: UserMovie,
-    onMovieClick: () -> Unit,
+fun TvSerieDaoItem(
+    tvSerie: UserTvSerie,
+    onTvSerieClick: () -> Unit,
     onDeleteClick: () -> Unit,
 
     // Parametro per riutilizzare il component con dimensioni (e formato) differenti
-    // in ProfileScreen e in MyListScreen
     compact: Boolean = false,
     modifier: Modifier = Modifier.fillMaxWidth()
 ) {
-    Card (
+    Card(
         colors = CardDefaults.cardColors(
             containerColor = MatchMovieCard,
             contentColor = MatchMovieLightText
         ),
         modifier = modifier
             .padding(bottom = 12.dp)
-            .clickable(onClick = onMovieClick)
+            .clickable(onClick = onTvSerieClick)
     ) {
         if (compact) {
             Box {
-                if (!movie.image.isNullOrBlank()) {
+                if (!tvSerie.image.isNullOrBlank()) {
                     AsyncImage(
-                        model = "https://image.tmdb.org/t/p/w500${movie.image}",
-                        contentDescription = "Poster ${movie.title}",
+                        model = "https://image.tmdb.org/t/p/w500${tvSerie.image}",
+                        contentDescription = "Poster ${tvSerie.title}",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -98,7 +97,7 @@ fun MovieDaoItem(
                         .padding(12.dp)
                 ) {
                     Text(
-                        text = movie.title,
+                        text = tvSerie.title,
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         style = MaterialTheme.typography.labelLarge,
@@ -109,8 +108,8 @@ fun MovieDaoItem(
                     Row {
                         repeat(5) { index ->
                             Text(
-                                text = if (index < movie.userRating) "★" else "☆",
-                                color = if (index < movie.userRating) Color(0xFFFFB400) else Color.White.copy(alpha = 0.3f),
+                                text = if (index < tvSerie.userRating) "★" else "☆",
+                                color = if (index < tvSerie.userRating) Color(0xFFFFB400) else Color.White.copy(alpha = 0.3f),
                                 fontSize = 12.sp
                             )
                         }
@@ -123,12 +122,12 @@ fun MovieDaoItem(
             ) {
 
                 // Controllo che il path dell'immagine non sia null
-                if (!movie.image.isNullOrBlank()) {
-                    AsyncImage (
+                if (!tvSerie.image.isNullOrBlank()) {
+                    AsyncImage(
 
                         // Specifico l'url da cui recuperare l'immagine
-                        model = "https://image.tmdb.org/t/p/w500${movie.image}",
-                        contentDescription = "Poster ${movie.title}",
+                        model = "https://image.tmdb.org/t/p/w500${tvSerie.image}",
+                        contentDescription = "Poster ${tvSerie.title}",
                         contentScale = ContentScale.Crop,
                         modifier = Modifier
                             .fillMaxWidth()
@@ -140,22 +139,22 @@ fun MovieDaoItem(
 
 
                 Text(
-                    text = movie.title,
+                    text = tvSerie.title,
                     color = MatchMovieLightText,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
 
-                movie.release_date?.takeIf { it.isNotBlank() }?.let { releaseDate ->
+                tvSerie.first_air_date?.takeIf { it.isNotBlank() }?.let { firstAirDate ->
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = releaseDate,
+                        text = firstAirDate,
                         color = MatchMovieMutedText,
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
 
-                movie.description.takeIf { it.isNotBlank() }?.let { overview ->
+                tvSerie.description.takeIf { it.isNotBlank() }?.let { overview ->
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = overview,
@@ -168,7 +167,7 @@ fun MovieDaoItem(
 
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
-                    text = "Rating: ${movie.userRating}",
+                    text = "Rating: ${tvSerie.userRating}",
                     color = MatchMovieMutedText,
                     style = MaterialTheme.typography.bodySmall
                 )

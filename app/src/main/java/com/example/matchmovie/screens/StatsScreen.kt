@@ -43,9 +43,11 @@ import coil3.compose.AsyncImage
 import com.example.matchmovie.components.LoadingScreen
 import com.example.matchmovie.components.MovieDaoItem
 import com.example.matchmovie.components.ProfileStatCard
+import com.example.matchmovie.components.TvSerieDaoItem
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.database.UserTvSerie
 import com.example.matchmovie.enumentity.MovieMood
 import com.example.matchmovie.ui.theme.MatchMovieAccent
 import com.example.matchmovie.ui.theme.MatchMovieBackground
@@ -80,6 +82,10 @@ fun StatsScreen(
     var moviesByMood by remember { mutableStateOf<Map<MovieMood, List<UserMovie>>>(emptyMap()) }
     var topRatedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
     var recentlyAddedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
+    var savedTvSeries by remember { mutableStateOf<List<UserTvSerie>>(emptyList()) }
+    var tvSeriesByMood by remember { mutableStateOf<Map<MovieMood, List<UserTvSerie>>>(emptyMap()) }
+    var topRatedTvSeries by remember { mutableStateOf<List<UserTvSerie>>(emptyList()) }
+    var recentlyAddedTvSeries by remember { mutableStateOf<List<UserTvSerie>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String>("") }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -92,10 +98,17 @@ fun StatsScreen(
             val loadedMovies = withContext(Dispatchers.IO) {
                 dao.getMoviesByUser(currentUser._id)
             }
+            val loadedTvSeries = withContext(Dispatchers.IO) {
+                dao.getTvSeriesByUser(currentUser._id)
+            }
 
 
             savedMovies = loadedMovies
+            savedTvSeries = loadedTvSeries
             moviesByMood = loadedMovies
+                .filter { it.mood != MovieMood.NOT_SPECIFIED }
+                .groupBy { it.mood }
+            tvSeriesByMood = loadedTvSeries
                 .filter { it.mood != MovieMood.NOT_SPECIFIED }
                 .groupBy { it.mood }
             topRatedMovies = loadedMovies
@@ -108,12 +121,25 @@ fun StatsScreen(
             recentlyAddedMovies = loadedMovies
                 .sortedByDescending { it._id }
                 .take(5)
+            topRatedTvSeries = loadedTvSeries
+                .sortedWith(
+                    compareByDescending<UserTvSerie> { it.userRating }
+                        .thenByDescending { it._id }
+                )
+                .take(5)
+            recentlyAddedTvSeries = loadedTvSeries
+                .sortedByDescending { it._id }
+                .take(5)
 
         } catch (e: Exception) {
             savedMovies = emptyList()
             moviesByMood = emptyMap()
             topRatedMovies = emptyList()
             recentlyAddedMovies = emptyList()
+            savedTvSeries = emptyList()
+            tvSeriesByMood = emptyMap()
+            topRatedTvSeries = emptyList()
+            recentlyAddedTvSeries = emptyList()
             errorMessage = "Unable to load local information, please try again"
         } finally {
             isLoading = false
@@ -147,9 +173,36 @@ fun StatsScreen(
     val firstAddedMovie = savedMovies.minByOrNull { it._id }?.title ?: "-"
     val latestAddedMovie = recentlyAddedMovies.firstOrNull()?.title ?: "-"
 
+    val totalTvSeries = savedTvSeries.count()
+    val averageTvSeriesRating = savedTvSeries
+        .takeIf { it.isNotEmpty() }
+        ?.map { it.userRating }
+        ?.average()
+        ?.let { String.format("%.1f", it) }
+        ?: "0.0"
+
+    val tvSeriesRatingCounts = remember(savedTvSeries) {
+        IntArray(6).also { counts ->
+            savedTvSeries.forEach { counts[it.userRating.coerceIn(0, 5)]++ }
+        }
+    }
+
+    val tvSeriesMoodEntries = remember(tvSeriesByMood, totalTvSeries) {
+        tvSeriesByMood.entries
+            .sortedByDescending { it.value.size }
+            .map { entry -> entry.key to entry.value.size }
+    }
+
+    val favoriteTvSeriesMood = tvSeriesMoodEntries.firstOrNull()?.first?.prettyName() ?: "Not Specified"
+    val highestRatedTvSeries = topRatedTvSeries.firstOrNull()?.title ?: "-"
+    val firstAddedTvSeries = savedTvSeries.minByOrNull { it._id }?.title ?: "-"
+    val latestAddedTvSeries = recentlyAddedTvSeries.firstOrNull()?.title ?: "-"
+
     val wrappedYear = remember { Calendar.getInstance().get(Calendar.YEAR).toString() }
 
-    val hasData = savedMovies.isNotEmpty()
+    val hasMovies = savedMovies.isNotEmpty()
+    val hasTvSeries = savedTvSeries.isNotEmpty()
+    val hasData = hasMovies || hasTvSeries
 
     if (isLoading) {
         LoadingScreen(
@@ -187,15 +240,23 @@ fun StatsScreen(
             WrappedHero(
                 userName = user?.name.orEmpty(),
                 totalMovies = totalMovies,
-                averageRating = averageRating,
-                favoriteMood = favoriteMood,
+                totalTvSeries = totalTvSeries,
+                averageMovieRating = averageRating,
+                averageTvSeriesRating = averageTvSeriesRating,
                 hasData = hasData
             )
         }
 
-        if (hasData) {
+        if (hasMovies) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(
+                        text = "Film Stats",
+                        color = MatchMovieLightText,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(14.dp),
                         modifier = Modifier.fillMaxWidth()
@@ -255,7 +316,7 @@ fun StatsScreen(
 
         if (moodEntries.isNotEmpty()) {
             item {
-                WrappedSectionCard(title = "Mood distribution") {
+                WrappedSectionCard(title = "Film mood distribution") {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         moodEntries.forEach { (mood, count) ->
                             MoodBar(
@@ -270,9 +331,9 @@ fun StatsScreen(
             }
         }
 
-        if (hasData) {
+        if (hasMovies) {
             item {
-                WrappedSectionCard(title = "Rating distribution") {
+                WrappedSectionCard(title = "Film rating distribution") {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         for (stars in 5 downTo 1) {
                             RatingBar(
@@ -280,6 +341,138 @@ fun StatsScreen(
                                 count = ratingCounts[stars],
                                 total = totalMovies
                             )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (hasTvSeries) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(
+                        text = "TV Series Stats",
+                        color = MatchMovieLightText,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ProfileStatCard(
+                            icon = "★",
+                            value = "$averageTvSeriesRating/5",
+                            label = "AVG TV Rating",
+                            modifier = Modifier.weight(1f)
+                        )
+                        ProfileStatCard(
+                            icon = "◈",
+                            value = favoriteTvSeriesMood,
+                            label = "Favourite TV Mood",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ProfileStatCard(
+                            icon = "▣",
+                            value = highestRatedTvSeries,
+                            label = "Highest Rated Series",
+                            modifier = Modifier.weight(1f)
+                        )
+                        ProfileStatCard(
+                            icon = "↺",
+                            value = firstAddedTvSeries,
+                            label = "First Series Added",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(14.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ProfileStatCard(
+                            icon = "☰",
+                            value = totalTvSeries.toString(),
+                            label = "TV Series Saved",
+                            modifier = Modifier.weight(1f)
+                        )
+                        ProfileStatCard(
+                            icon = "↷",
+                            value = latestAddedTvSeries,
+                            label = "Latest Series Added",
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+
+        if (tvSeriesMoodEntries.isNotEmpty()) {
+            item {
+                WrappedSectionCard(title = "TV series mood distribution") {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        tvSeriesMoodEntries.forEach { (mood, count) ->
+                            MoodBar(
+                                moodName = mood.prettyName(),
+                                count = count,
+                                total = totalTvSeries,
+                                color = moodColor(mood)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (hasTvSeries) {
+            item {
+                WrappedSectionCard(title = "TV series rating distribution") {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        for (stars in 5 downTo 1) {
+                            RatingBar(
+                                stars = stars,
+                                count = tvSeriesRatingCounts[stars],
+                                total = totalTvSeries
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        if (topRatedTvSeries.isNotEmpty()) {
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Text(
+                        text = "Top ${topRatedTvSeries.size} TV Series",
+                        color = MatchMovieLightText,
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    topRatedTvSeries.take(3).chunked(2).forEach { rowTvSeries ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            rowTvSeries.forEach { tvSerie ->
+                                TvSerieDaoItem(
+                                    tvSerie = tvSerie,
+                                    onTvSerieClick = {},
+                                    onDeleteClick = {},
+                                    compact = true,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                            if (rowTvSeries.size == 1) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
                         }
                     }
                 }
@@ -348,8 +541,9 @@ fun StatsScreen(
 private fun WrappedHero(
     userName: String,
     totalMovies: Int,
-    averageRating: String,
-    favoriteMood: String,
+    totalTvSeries: Int,
+    averageMovieRating: String,
+    averageTvSeriesRating: String,
     hasData: Boolean
 ) {
     Box(
@@ -377,7 +571,7 @@ private fun WrappedHero(
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
-                text = "Movie Wrapped",
+                text = "Movie & TV Wrapped",
                 color = MatchMovieLightText,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold
@@ -396,6 +590,12 @@ private fun WrappedHero(
                     color = MatchMovieLightText.copy(alpha = 0.85f),
                     style = MaterialTheme.typography.bodyLarge
                 )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "$totalTvSeries TV series saved",
+                    color = MatchMovieLightText.copy(alpha = 0.85f),
+                    style = MaterialTheme.typography.bodyLarge
+                )
 
                 Spacer(modifier = Modifier.height(18.dp))
 
@@ -404,19 +604,24 @@ private fun WrappedHero(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     HeroStat(
-                        label = "AVG rating",
-                        value = "$averageRating/5",
+                        label = "films",
+                        value = totalMovies.toString(),
                         modifier = Modifier.weight(1f)
                     )
                     HeroStat(
-                        label = "top mood",
-                        value = favoriteMood,
+                        label = "series",
+                        value = totalTvSeries.toString(),
+                        modifier = Modifier.weight(1f)
+                    )
+                    HeroStat(
+                        label = "avg ratings",
+                        value = "$averageMovieRating · $averageTvSeriesRating",
                         modifier = Modifier.weight(1f)
                     )
                 }
             } else {
                 Text(
-                    text = "No films saved yet.\nAdd some to unwrap your year.",
+                    text = "No films or TV series saved yet.\nAdd some to unwrap your year.",
                     color = MatchMovieLightText,
                     style = MaterialTheme.typography.bodyLarge
                 )

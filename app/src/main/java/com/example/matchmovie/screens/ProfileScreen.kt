@@ -43,6 +43,7 @@ import com.example.matchmovie.components.ProfileStatCard
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.database.UserTvSerie
 import com.example.matchmovie.enumentity.MovieMood
 import com.example.matchmovie.ui.theme.MatchMovieBackground
 import com.example.matchmovie.ui.theme.MatchMovieLightText
@@ -64,6 +65,10 @@ fun ProfileScreen(
     var moviesByMood by remember { mutableStateOf<Map<MovieMood, List<UserMovie>>>(emptyMap()) }
     var topRatedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
     var recentlyAddedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
+    var savedTvSeries by remember { mutableStateOf<List<UserTvSerie>>(emptyList()) }
+    var tvSeriesByMood by remember { mutableStateOf<Map<MovieMood, List<UserTvSerie>>>(emptyMap()) }
+    var topRatedTvSeries by remember { mutableStateOf<List<UserTvSerie>>(emptyList()) }
+    var recentlyAddedTvSeries by remember { mutableStateOf<List<UserTvSerie>>(emptyList()) }
     var errorMessage by remember { mutableStateOf<String>("") }
     var isLoading by remember { mutableStateOf(true) }
 
@@ -75,10 +80,15 @@ fun ProfileScreen(
             val loadedMovies = withContext(Dispatchers.IO) {
                 dao.getMoviesByUser(currentUser._id)
             }
+            val loadedTvSeries = withContext(Dispatchers.IO) {
+                dao.getTvSeriesByUser(currentUser._id)
+            }
             savedMovies = loadedMovies
+            savedTvSeries = loadedTvSeries
 
             // Liste separate per mood
             moviesByMood = loadedMovies.groupBy { movie -> movie.mood }
+            tvSeriesByMood = loadedTvSeries.groupBy { tvSerie -> tvSerie.mood }
 
             // Primi 5 film per rating decrescente
             topRatedMovies = loadedMovies
@@ -92,11 +102,26 @@ fun ProfileScreen(
             recentlyAddedMovies = loadedMovies
                 .sortedByDescending { movie -> movie._id }
                 .take(5)
+
+            topRatedTvSeries = loadedTvSeries
+                .sortedWith(
+                    compareByDescending<UserTvSerie> { tvSerie -> tvSerie.userRating }
+                        .thenByDescending { tvSerie -> tvSerie._id }
+                )
+                .take(5)
+
+            recentlyAddedTvSeries = loadedTvSeries
+                .sortedByDescending { tvSerie -> tvSerie._id }
+                .take(5)
         } catch (e: Exception) {
             savedMovies = emptyList()
             moviesByMood = emptyMap()
             topRatedMovies = emptyList()
             recentlyAddedMovies = emptyList()
+            savedTvSeries = emptyList()
+            tvSeriesByMood = emptyMap()
+            topRatedTvSeries = emptyList()
+            recentlyAddedTvSeries = emptyList()
             errorMessage = "Unable to load local information, please try again"
         } finally {
             isLoading = false
@@ -124,6 +149,25 @@ fun ProfileScreen(
 
     val highestRatedMovie = topRatedMovies.firstOrNull()?.title ?: "-"
     val firstAddedMovie = savedMovies.minByOrNull { movie -> movie._id }?.title ?: "-"
+
+    val averageTvSeriesRating = savedTvSeries
+        .takeIf { tvSeries -> tvSeries.isNotEmpty() }
+        ?.map { tvSerie -> tvSerie.userRating }
+        ?.average()
+        ?.let { rating -> String.format("%.1f/5", rating) }
+        ?: "0.0/5"
+
+    var favoriteTvSeriesMood = tvSeriesByMood
+        .maxByOrNull { entry -> entry.value.size }
+        ?.key
+        ?.name
+        ?: "-"
+
+    if (favoriteTvSeriesMood == "NOT_SPECIFIED")
+        favoriteTvSeriesMood = "Not Specified"
+
+    val highestRatedTvSeries = topRatedTvSeries.firstOrNull()?.title ?: "-"
+    val firstAddedTvSeries = savedTvSeries.minByOrNull { tvSerie -> tvSerie._id }?.title ?: "-"
 
     if (isLoading) {
         LoadingScreen(
@@ -317,6 +361,68 @@ fun ProfileScreen(
                         icon = "↷",
                         value = recentlyAddedMovies.firstOrNull()?.title ?: "-",
                         label = "Latest Film Added",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
+
+                Text(
+                    text = "TV Series Stats",
+                    color = MatchMovieLightText,
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ProfileStatCard(
+                        icon = "★",
+                        value = averageTvSeriesRating,
+                        label = "AVG TV Rating",
+                        modifier = Modifier.weight(1f)
+                    )
+                    ProfileStatCard(
+                        icon = "◈",
+                        value = favoriteTvSeriesMood,
+                        label = "Favourite TV Mood",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ProfileStatCard(
+                        icon = "▣",
+                        value = highestRatedTvSeries,
+                        label = "Highest Rated Series",
+                        modifier = Modifier.weight(1f)
+                    )
+                    ProfileStatCard(
+                        icon = "↺",
+                        value = firstAddedTvSeries,
+                        label = "First Series Added",
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    ProfileStatCard(
+                        icon = "☰",
+                        value = savedTvSeries.count().toString(),
+                        label = "TV Series Saved",
+                        modifier = Modifier.weight(1f)
+                    )
+                    ProfileStatCard(
+                        icon = "↷",
+                        value = recentlyAddedTvSeries.firstOrNull()?.title ?: "-",
+                        label = "Latest Series Added",
                         modifier = Modifier.weight(1f)
                     )
                 }
