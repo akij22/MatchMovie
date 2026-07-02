@@ -34,10 +34,18 @@ Below is a short demo of the MatchMovie app in action.
 .
 ├── app/                  # Android application
 ├── server/               # Flask backend
+├── demo_recordings/      # Demo GIFs and recordings used in the README
 ├── gradle/               # Gradle wrapper and version catalog
+├── MatchMovie_demo.mp4   # Full app demo video
 ├── build.gradle.kts      # Root Gradle build file
 └── settings.gradle.kts   # Gradle project settings
 ```
+
+## Configuration Overview
+
+The Android app talks to the Flask backend instead of calling TMDB, OpenRouter, or Supabase directly. Keep all API keys and service credentials in `server/.env`; do not commit real secrets to the repository.
+
+By default, the app is configured for the Android emulator and expects the backend at `http://10.0.2.2:5001/`. For physical devices, update the Retrofit base URL to the LAN address of the computer running Flask.
 
 ## Prerequisites
 
@@ -141,15 +149,13 @@ curl http://localhost:5001/health
 
 Most movie and chat endpoints require the JWT returned by the authentication endpoints.
 
-## Kotlin Safety Guidelines
-
-- Never use Kotlin's non-null assertion operator (`!!`). It can crash the app at runtime with a `NullPointerException` and hides missing null handling.
-- Prefer safer alternatives such as safe calls (`?.`), Elvis expressions (`?:`), explicit null checks, `let`/`run` blocks, nullable-aware UI states, or early returns when required data is missing.
-- If a value is expected to be non-null because of app logic, validate that assumption explicitly and handle the failure path with a clear fallback, error state, or exception that explains the broken invariant.
-
 ## Notes
 
 - Saved movies are stored locally in the Android Room database.
 - Remote authentication data is stored in Supabase.
 - TMDB and OpenRouter calls are handled by the Flask backend so API keys are not embedded in the Android app.
 - The repository also contains a backend-specific README in [server/README.md](server/README.md).
+
+## License
+
+This project is distributed under the terms of the [MIT License](LICENSE).

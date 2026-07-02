@@ -81,6 +81,12 @@ MatchMovie is an Android app built with Kotlin and Jetpack Compose for searching
 - Do not leave dead code, unused imports, or unused variables.
 - Keep standard Kotlin formatting.
 
+## Kotlin Safety Guidelines
+
+- Never use Kotlin's non-null assertion operator (`!!`). It can crash the app at runtime with a `NullPointerException` and hides missing null handling.
+- Prefer safer alternatives such as safe calls (`?.`), Elvis expressions (`?:`), explicit null checks, `let`/`run` blocks, nullable-aware UI states, or early returns when required data is missing.
+- If a value is expected to be non-null because of app logic, validate that assumption explicitly and handle the failure path with a clear fallback, error state, or exception that explains the broken invariant.
+
 ## Build and Checking
 
 - Compile and check the Android app with the dedicated Gradle command, using `gradle`.
