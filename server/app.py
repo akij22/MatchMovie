@@ -59,6 +59,17 @@ def validate_auth_payload(data):
     return {"name": name, "email": email, "password": password}, None, None
 
 
+def normalize_optional_text(value):
+    if value is None:
+        return None
+
+    if not isinstance(value, str):
+        return None
+
+    value = value.strip()
+    return value or None
+
+
 def create_jwt(user_id, email):
     payload = {
         "user_id": user_id,
@@ -624,11 +635,14 @@ def update_me():
     update_fields = {}
 
     if "name" in data:
-        update_fields["name"] = data["name"].strip()
+        name = normalize_optional_text(data["name"])
+        if not name:
+            return jsonify({"error": "Name cannot be empty"}), 400
+        update_fields["name"] = name
     if "bio" in data:
-        update_fields["bio"] = data["bio"].strip()
+        update_fields["bio"] = normalize_optional_text(data["bio"])
     if "profileImage" in data:
-        update_fields["profile_image"] = data["profileImage"]
+        update_fields["profile_image"] = normalize_optional_text(data["profileImage"])
 
     if not update_fields:
         return jsonify({"error": "No fields to update"}), 400

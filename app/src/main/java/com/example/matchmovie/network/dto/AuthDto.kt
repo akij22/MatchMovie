@@ -23,6 +23,11 @@ data class LoginResponseDto(
     val user: AuthUserDto,
 )
 
+data class UpdateProfileRequestDto(
+    val profileImage: String?,
+    val bio: String?,
+)
+
 data class AuthUserDto(
     val id: Int,
     val name: String,
