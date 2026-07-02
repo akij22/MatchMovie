@@ -5,8 +5,7 @@ MatchMovie is an Android application that helps users discover, save, rate, and 
 ## Demo
 
 Below is a short demo of the MatchMovie app in action.
-
-[![MatchMovie home screen demo](demo_recordings/home_screen_demo.gif)](demo_recordings/home_screen_demo.mp4)
+![demo video](./demo_recordings/home_screen_demo.mp4)
 
 ## Features
 
