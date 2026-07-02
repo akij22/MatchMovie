@@ -1,5 +1,13 @@
 package com.example.matchmovie.screens
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -39,6 +47,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -63,6 +72,7 @@ import com.example.matchmovie.ui.theme.MatchMovieSurface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 
 @Composable
 fun ProfileScreen(
@@ -73,7 +83,9 @@ fun ProfileScreen(
     onUserUpdated: (User) -> Unit
 ) {
 
+    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
+    var pendingCameraUri by remember { mutableStateOf<Uri?>(null) }
     var savedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
     var moviesByMood by remember { mutableStateOf<Map<MovieMood, List<UserMovie>>>(emptyMap()) }
     var topRatedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
@@ -88,6 +100,19 @@ fun ProfileScreen(
     var isSavingProfile by remember { mutableStateOf(false) }
     var showImageDialog by remember { mutableStateOf(false) }
     var showBioDialog by remember { mutableStateOf(false) }
+
+    fun createProfileImageUri(): Uri {
+        val imageDirectory = File(context.filesDir, "profile_images").apply {
+            mkdirs()
+        }
+        val imageFile = File(imageDirectory, "profile_${System.currentTimeMillis()}.jpg")
+
+        return FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            imageFile
+        )
+    }
 
     LaunchedEffect(user?._id) {
         val currentUser = user ?: return@LaunchedEffect
@@ -217,16 +242,65 @@ fun ProfileScreen(
         }
     }
 
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        uri ?: return@rememberLauncherForActivityResult
+
+        runCatching {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+        }
+
+        updateProfile(profileImage = uri.toString(), bio = user?.bio)
+    }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { wasSaved ->
+        val imageUri = pendingCameraUri
+        if (wasSaved && imageUri != null) {
+            updateProfile(profileImage = imageUri.toString(), bio = user?.bio)
+        }
+        pendingCameraUri = null
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            val imageUri = createProfileImageUri()
+            pendingCameraUri = imageUri
+            cameraLauncher.launch(imageUri)
+        } else {
+            profileMessage = "Camera permission denied"
+            showImageDialog = false
+        }
+    }
+
+    fun openCamera() {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            val imageUri = createProfileImageUri()
+            pendingCameraUri = imageUri
+            cameraLauncher.launch(imageUri)
+        } else {
+            cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+        }
+    }
+
     if (showImageDialog) {
-        EditProfileDialog(
+        EditProfileImageDialog(
             title = "Edit profile picture",
-            label = "Image URL",
-            initialValue = user?.profileImage.orEmpty(),
-            singleLine = true,
-            confirmEnabled = !isSavingProfile,
             onDismiss = { showImageDialog = false },
-            onConfirm = { imageUrl ->
-                updateProfile(profileImage = imageUrl, bio = user?.bio)
+            onOpenCamera = {
+                showImageDialog = false
+                openCamera()
+            },
+            onOpenGallery = {
+                showImageDialog = false
+                galleryLauncher.launch(arrayOf("image/*"))
             }
         )
     }
@@ -625,6 +699,71 @@ fun ProfileScreen(
         }
     }
 }
+}
+
+@Composable
+private fun EditProfileImageDialog(
+    title: String,
+    onDismiss: () -> Unit,
+    onOpenCamera: () -> Unit,
+    onOpenGallery: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = MatchMovieSurface),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = title,
+                    color = MatchMovieLightText,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Button(
+                    onClick = onOpenCamera,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MatchMoviePrimary,
+                        contentColor = Color.White
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Open camera", fontWeight = FontWeight.Bold)
+                }
+
+                Button(
+                    onClick = onOpenGallery,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MatchMovieMutedButton,
+                        contentColor = MatchMovieLightText
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("Open gallery", fontWeight = FontWeight.SemiBold)
+                }
+
+                TextButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        text = "Cancel",
+                        color = MatchMovieMutedText,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
