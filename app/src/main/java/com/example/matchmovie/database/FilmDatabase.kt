@@ -8,8 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [UserMovie::class, User::class],
-    version = 4,
+    entities = [UserMovie::class, UserTvSerie::class, User::class],
+    version = 5,
     exportSchema = false
 )
 abstract class FilmDatabase : RoomDatabase() {
@@ -53,6 +53,28 @@ abstract class FilmDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `UserTvSerie` (
+                        `_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        `userId` INTEGER NOT NULL,
+                        `tmdbSerieId` INTEGER NOT NULL,
+                        `title` TEXT NOT NULL,
+                        `description` TEXT NOT NULL,
+                        `image` TEXT,
+                        `bio` TEXT,
+                        `userRating` INTEGER NOT NULL,
+                        `mood` TEXT NOT NULL,
+                        `first_air_date` TEXT
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_UserTvSerie_userId` ON `UserTvSerie` (`userId`)")
+            }
+        }
+
 
         fun getInstance(context: Context): FilmDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -63,6 +85,7 @@ abstract class FilmDatabase : RoomDatabase() {
                     .addMigrations(MIGRATION_1_2)
                     .addMigrations(MIGRATION_2_3)
                     .addMigrations(MIGRATION_3_4)
+                    .addMigrations(MIGRATION_4_5)
                     .build()
                 INSTANCE = instance
                 instance

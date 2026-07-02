@@ -1,6 +1,7 @@
 package com.example.matchmovie.model
 
 import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.database.UserTvSerie
 import com.example.matchmovie.enumentity.MovieMood
 import com.example.matchmovie.network.dto.SingleMovieResultDto
 import com.example.matchmovie.network.dto.SingleTvSeriesResultDto
@@ -72,6 +73,22 @@ fun UserMovie.toMovieDetailsUi(): MovieDetailsUi {
         originalLanguage = null,
         mood = mood,
         mediaType = MediaType.Movie,
+        userRating = userRating
+    )
+}
+
+fun UserTvSerie.toMovieDetailsUi(): MovieDetailsUi {
+    return MovieDetailsUi(
+        id = tmdbSerieId,
+        title = title,
+        overview = description,
+        posterPath = image,
+        backdropPath = null,
+        releaseDate = first_air_date,
+        voteAverage = null,
+        originalLanguage = null,
+        mood = mood,
+        mediaType = MediaType.TvSeries,
         userRating = userRating
     )
 }

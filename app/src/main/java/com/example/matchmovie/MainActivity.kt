@@ -41,6 +41,7 @@ import com.example.matchmovie.components.MatchMovieTitle
 import com.example.matchmovie.database.FilmDatabase
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.database.UserTvSerie
 import com.example.matchmovie.enumentity.Screen
 import com.example.matchmovie.model.ChatMessage
 import com.example.matchmovie.model.MediaType
@@ -179,7 +180,7 @@ class MainActivity : ComponentActivity() {
                 }
 
                 selectedMovie = movieDetails
-                selectedMovieCanBeSaved = canBeSaved && movieDetails.mediaType == MediaType.Movie
+                selectedMovieCanBeSaved = canBeSaved
                 selectedMovieBackScreen = backScreen
                 currentScreen = Screen.FilmDetailsScreen
             }
@@ -198,7 +199,7 @@ class MainActivity : ComponentActivity() {
             suspend fun onTvSeriesSelected(series: SingleTvSeriesResultDto) {
                 openMovieDetails(
                     movieDetails = series.toMovieDetailsUi(),
-                    canBeSaved = false,
+                    canBeSaved = true,
                     backScreen = Screen.HomeScreen
                 )
             }
@@ -218,6 +219,14 @@ class MainActivity : ComponentActivity() {
             suspend fun onSavedMovieSelected(movie: UserMovie) {
                 openMovieDetails(
                     movieDetails = movie.toMovieDetailsUi(),
+                    canBeSaved = false,
+                    backScreen = Screen.MyListScreen
+                )
+            }
+
+            suspend fun onSavedTvSeriesSelected(tvSerie: UserTvSerie) {
+                openMovieDetails(
+                    movieDetails = tvSerie.toMovieDetailsUi(),
                     canBeSaved = false,
                     backScreen = Screen.MyListScreen
                 )
@@ -367,7 +376,8 @@ class MainActivity : ComponentActivity() {
                                                 MyListScreen(
                                                     dao = dao,
                                                     currentUser = user,
-                                                    onMovieSelected = ::onSavedMovieSelected
+                                                    onMovieSelected = ::onSavedMovieSelected,
+                                                    onTvSerieSelected = ::onSavedTvSeriesSelected
                                                 )
                                             } ?: run {
                                                 currentScreen = Screen.LoginPage

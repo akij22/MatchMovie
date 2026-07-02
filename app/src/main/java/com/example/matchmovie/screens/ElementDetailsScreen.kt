@@ -50,6 +50,7 @@ import com.example.matchmovie.components.LoadingScreen
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
+import com.example.matchmovie.database.UserTvSerie
 import com.example.matchmovie.network.dto.MovieCastMemberDto
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieCrewMemberDto
@@ -82,7 +83,7 @@ fun FilmDetailScreen(
     val descriptionTitle = if (isTvSeries) "TV Series Description" else "Film Description"
     val savedLabel = if (isTvSeries) "series" else "film"
     var userRating by remember { mutableIntStateOf(0) }
-    var isMovieSaved by remember { mutableStateOf(false) }
+    var isSaved by remember { mutableStateOf(false) }
 
     // State per la gestione delle stagioni/episodi delle serie TV
     var selectedSeasonNumber by remember { mutableIntStateOf(-1) }
@@ -101,11 +102,18 @@ fun FilmDetailScreen(
     }
 
     LaunchedEffect(currentUser._id, movie.id) {
-        isMovieSaved = withContext(Dispatchers.IO) {
-            dao.isMovieSaved(
-                userId = currentUser._id,
-                tmdbMovieId = movie.id
-            )
+        isSaved = withContext(Dispatchers.IO) {
+            when (movie.mediaType) {
+                MediaType.Movie -> dao.isMovieSaved(
+                    userId = currentUser._id,
+                    tmdbMovieId = movie.id
+                )
+
+                MediaType.TvSeries -> dao.isTvSerieSaved(
+                    userId = currentUser._id,
+                    tmdbSerieId = movie.id
+                )
+            }
         }
     }
 
@@ -434,8 +442,8 @@ fun FilmDetailScreen(
                     )
 
 
-                    // Se film è gia presente sul db dell'utente loggato, non permetto il salvataggio
-                    if (isMovieSaved) {
+                    // Se il media è già presente sul db dell'utente loggato, non permetto il salvataggio
+                    if (isSaved) {
                         Text(
                             text = "${savedLabel.replaceFirstChar { it.uppercase() }} already saved in MyList",
                             color = Color(0xFFE1BEBF),
@@ -458,28 +466,41 @@ fun FilmDetailScreen(
                                 .fillMaxWidth()
                                 .height(58.dp),
 
-                            // Al click, devo creare un nuovo oggetto UserMovie e salvarlo su DB
-	                            onClick = {
-	                                coroutineScope.launch {
-	                                    withContext(Dispatchers.IO) {
+                            // Al click, creo il corretto oggetto (UserMovie o UserTvSerie) e lo salvo su DB
+                            onClick = {
+                                coroutineScope.launch {
+                                    withContext(Dispatchers.IO) {
+                                        when (movie.mediaType) {
+                                            MediaType.Movie -> dao.insert(
+                                                UserMovie(
+                                                    userId = currentUser._id,
+                                                    tmdbMovieId = movie.id,
+                                                    title = movie.title,
+                                                    description = movie.overview ?: "",
+                                                    image = movie.posterPath ?: "",
+                                                    bio = "",
+                                                    userRating = userRating,
+                                                    release_date = movie.releaseDate,
+                                                    mood = movie.mood
+                                                )
+                                            )
 
-	                                        dao.insert(
-	                                            // Creo un nuovo UserMovie
-	                                            UserMovie(
-	                                                userId = currentUser._id,
-	                                                tmdbMovieId = movie.id,
-	                                                title = movie.title,
-	                                                description = movie.overview ?: "",
-	                                                image = movie.posterPath ?: "",
-	                                                bio = "",
-	                                                userRating = userRating,
-	                                                release_date = movie.releaseDate,
-
-	                                                mood = movie.mood
-	                                            )
-	                                        )
-	                                    }
-                                    isMovieSaved = true
+                                            MediaType.TvSeries -> dao.insert(
+                                                UserTvSerie(
+                                                    userId = currentUser._id,
+                                                    tmdbSerieId = movie.id,
+                                                    title = movie.title,
+                                                    description = movie.overview ?: "",
+                                                    image = movie.posterPath ?: "",
+                                                    bio = "",
+                                                    userRating = userRating,
+                                                    first_air_date = movie.releaseDate,
+                                                    mood = movie.mood
+                                                )
+                                            )
+                                        }
+                                    }
+                                    isSaved = true
                                     onBackClick()
                                 }
                             }
