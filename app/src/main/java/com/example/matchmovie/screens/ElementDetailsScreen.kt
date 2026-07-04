@@ -47,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import com.example.matchmovie.components.LoadingScreen
+import com.example.matchmovie.components.SelectableFilterChip
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
@@ -55,7 +56,6 @@ import com.example.matchmovie.network.dto.MovieCastMemberDto
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieCrewMemberDto
 import com.example.matchmovie.network.dto.TvEpisodeDto
-import com.example.matchmovie.network.dto.TvSeasonSummaryDto
 import com.example.matchmovie.network.dto.TvSeriesDetailsDto
 import com.example.matchmovie.model.MediaType
 import com.example.matchmovie.model.MovieDetailsUi
@@ -285,8 +285,9 @@ fun FilmDetailScreen(
                         contentPadding = PaddingValues(vertical = 2.dp)
                     ) {
                         items(tvSeriesDetails.seasons) { season ->
-                            SeasonChip(
-                                season = season,
+                            SelectableFilterChip(
+                                label = season.name?.takeIf { it.isNotBlank() }
+                                    ?: "Season ${season.season_number}",
                                 selected = season.season_number == selectedSeasonNumber,
                                 onClick = { selectedSeasonNumber = season.season_number }
                             )
@@ -706,38 +707,6 @@ fun CastMemberItem(
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-
-// Composable per il selettore di stagione (chip)
-@Composable
-private fun SeasonChip(
-    season: TvSeasonSummaryDto,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val containerColor = if (selected) Color(0xFFE84A5F) else Color(0x99202C38)
-    val contentColor = if (selected) Color.White else Color(0xFFE1BEBF)
-    val borderColor = if (selected) Color.Transparent else Color(0x1AF7F9FC)
-
-    Box(
-        modifier = modifier
-            .clip(RoundedCornerShape(50))
-            .background(containerColor)
-            .border(1.dp, borderColor, RoundedCornerShape(50))
-            .clickable { onClick() }
-            .padding(horizontal = 18.dp, vertical = 8.dp)
-    ) {
-        Text(
-            text = season.name?.takeIf { it.isNotBlank() }
-                ?: "Season ${season.season_number}",
-            color = contentColor,
-            fontSize = 13.sp,
-            lineHeight = 16.sp,
-            fontWeight = FontWeight.Bold
         )
     }
 }
