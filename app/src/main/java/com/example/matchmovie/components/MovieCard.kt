@@ -27,6 +27,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.example.matchmovie.enumentity.displayName
 import com.example.matchmovie.network.dto.SingleMovieResultDto
 import kotlinx.coroutines.launch
 
@@ -128,9 +129,9 @@ fun MovieCard (
 
             // Mostro il banner "in arrivo" solo se si tratta della lista upComingFilms
             text = if (showReleaseDateBadge) {
-                "${movie.mood} • Coming soon"
+                "${movie.mood.displayName()} • Coming soon"
             } else {
-                "${movie.mood} • $releaseYear"
+                "${movie.mood.displayName()} • $releaseYear"
             },
             color = Color(0xFFE1BEBF),
             style = MaterialTheme.typography.bodySmall,
