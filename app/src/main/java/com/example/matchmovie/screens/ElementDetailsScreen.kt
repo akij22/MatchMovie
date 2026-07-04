@@ -52,6 +52,7 @@ import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.database.UserTvSerie
+import com.example.matchmovie.enumentity.displayName
 import com.example.matchmovie.network.dto.MovieCastMemberDto
 import com.example.matchmovie.network.dto.MovieCreditsDto
 import com.example.matchmovie.network.dto.MovieCrewMemberDto
@@ -195,7 +196,7 @@ fun FilmDetailScreen(
                         movie.originalLanguage?.takeIf { it.isNotBlank() }?.let { originalLanguage ->
                             InfoChip(text = originalLanguage.uppercase())
                         }
-                        InfoChip(text = movie.mood.toString())
+                        InfoChip(text = movie.mood.displayName())
                         if (isTvSeries) {
                             InfoChip(text = "TV SERIES")
                         }

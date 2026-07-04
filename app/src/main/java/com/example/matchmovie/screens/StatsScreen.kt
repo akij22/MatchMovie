@@ -779,15 +779,22 @@ private fun MovieMood.prettyName(): String =
     }
 
 private fun moodColor(mood: MovieMood): Color = when (mood) {
-    MovieMood.HAPPY        -> MatchMovieSecondary
-    MovieMood.FUNNY        -> Color(0xFFFFD23F)
-    MovieMood.SAD          -> Color(0xFF5B7CFA)
-    MovieMood.ROMANTIC     -> MatchMoviePrimary
-    MovieMood.COZY         -> Color(0xFFE8915A)
-    MovieMood.DARK         -> Color(0xFF5A4A6E)
+    MovieMood.HAPPY -> MatchMovieSecondary
+    MovieMood.FUNNY -> Color(0xFFFFD23F)
+    MovieMood.SAD -> Color(0xFF5B7CFA)
+    MovieMood.ROMANTIC -> MatchMoviePrimary
+    MovieMood.COZY -> Color(0xFFE8915A)
+    MovieMood.DARK -> Color(0xFF5A4A6E)
     MovieMood.MIND_BLOWING -> Color(0xFF8A5BF5)
-    MovieMood.SCARY        -> Color(0xFF6E1423)
-    MovieMood.ACTION       -> Color(0xFFFF5A3C)
-    MovieMood.RELAXED      -> MatchMovieAccent
+    MovieMood.SCARY -> Color(0xFF6E1423)
+    MovieMood.ACTION -> Color(0xFFFF5A3C)
+    MovieMood.ADVENTUROUS -> Color(0xFF00A878)
+    MovieMood.SUSPENSEFUL -> Color(0xFF7A4EAB)
+    MovieMood.DRAMATIC -> Color(0xFF3D6FB6)
+    MovieMood.INFORMATIVE -> Color(0xFF2F9C95)
+    MovieMood.PLAYFUL -> Color(0xFFFF8C42)
+    MovieMood.NOSTALGIC -> Color(0xFFB07D62)
+    MovieMood.REALITY -> Color(0xFF6A8D73)
+    MovieMood.RELAXED -> MatchMovieAccent
     MovieMood.NOT_SPECIFIED -> MatchMovieMutedText
 }

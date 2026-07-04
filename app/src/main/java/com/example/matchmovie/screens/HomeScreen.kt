@@ -123,13 +123,19 @@ fun HomeScreen(
     fun mapGenreToMood(genre: String): MovieMood {
         return when (genre) {
             "Comedy" -> MovieMood.FUNNY
+            "Drama", "TV Movie", "Soap" -> MovieMood.DRAMATIC
             "Romance" -> MovieMood.ROMANTIC
             "Horror" -> MovieMood.SCARY
-            "Thriller", "Crime", "Mystery", "War" -> MovieMood.DARK
-            "Action", "Adventure" -> MovieMood.ACTION
-            "Science Fiction", "Fantasy" -> MovieMood.MIND_BLOWING
-            "Drama", "History", "Documentary" -> MovieMood.SAD
-            "Animation", "Family", "Music" -> MovieMood.HAPPY
+            "Thriller", "Crime", "Mystery" -> MovieMood.SUSPENSEFUL
+            "War", "War & Politics" -> MovieMood.DARK
+            "Action" -> MovieMood.ACTION
+            "Adventure", "Action & Adventure" -> MovieMood.ADVENTUROUS
+            "Science Fiction", "Fantasy", "Sci-Fi & Fantasy" -> MovieMood.MIND_BLOWING
+            "Documentary", "News", "Talk" -> MovieMood.INFORMATIVE
+            "Animation", "Family", "Kids" -> MovieMood.PLAYFUL
+            "Music" -> MovieMood.HAPPY
+            "History", "Western" -> MovieMood.NOSTALGIC
+            "Reality" -> MovieMood.REALITY
             else -> MovieMood.RELAXED
         }
     }
@@ -151,7 +157,7 @@ fun HomeScreen(
 
             // Prendo il primo mood trovato valido
             .firstOrNull()
-            ?: MovieMood.NOT_SPECIFIED
+            ?: MovieMood.RELAXED
     }
 
     // Data una lista di films e lo state `genresById`, assegno ad ogni film

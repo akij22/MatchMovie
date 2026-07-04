@@ -50,22 +50,24 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.matchmovie.ui.theme.MatchMovieSecondary
 import coil3.compose.AsyncImage
 import com.example.matchmovie.components.LoadingScreen
 import com.example.matchmovie.components.MovieDaoItem
-import com.example.matchmovie.components.ProfileStatCard
 import com.example.matchmovie.database.FilmDAO
 import com.example.matchmovie.database.User
 import com.example.matchmovie.database.UserMovie
 import com.example.matchmovie.database.UserTvSerie
 import com.example.matchmovie.enumentity.MovieMood
+import com.example.matchmovie.enumentity.displayName
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.UpdateProfileRequestDto
 import com.example.matchmovie.ui.theme.MatchMovieBackground
 import com.example.matchmovie.ui.theme.MatchMovieCard
+import com.example.matchmovie.ui.theme.MatchMovieAccent
 import com.example.matchmovie.ui.theme.MatchMovieLightText
 import com.example.matchmovie.ui.theme.MatchMovieMutedButton
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
@@ -182,7 +184,7 @@ fun ProfileScreen(
     var favoriteMood = moviesByMood
         .maxByOrNull { entry -> entry.value.size }
         ?.key
-        ?.name
+        ?.displayName()
         ?: "-"
 
 
@@ -204,7 +206,7 @@ fun ProfileScreen(
     var favoriteTvSeriesMood = tvSeriesByMood
         .maxByOrNull { entry -> entry.value.size }
         ?.key
-        ?.name
+        ?.displayName()
         ?: "-"
 
     if (favoriteTvSeriesMood == "NOT_SPECIFIED")
@@ -522,47 +524,29 @@ fun ProfileScreen(
         }
 
         item {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(14.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
                 Text(
-                    text = "Stats",
+                    text = "Statistiche",
                     color = MatchMovieLightText,
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold
                 )
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    ProfileStatCard(
-                        icon = "★",
-                        value = averageRating,
-                        label = "AVG Rating",
-                        modifier = Modifier.weight(1f)
+                    ProgressStatCard(
+                        label = "Film salvati",
+                        count = savedMovies.count(),
+                        goal = 20,
+                        accent = MatchMoviePrimary,
+                        icon = "\uD83C\uDFAC",
+                        modifier = Modifier.weight(2f)
                     )
-                    ProfileStatCard(
-                        icon = "◈",
-                        value = favoriteMood,
-                        label = "Favourite Mood",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    ProfileStatCard(
-                        icon = "▣",
-                        value = highestRatedMovie,
-                        label = "Highest Rating",
-                        modifier = Modifier.weight(1f)
-                    )
-                    ProfileStatCard(
-                        icon = "↺",
-                        value = firstAddedMovie,
-                        label = "First Film Added",
+                    MoodStatCard(
+                        mood = favoriteMood,
+                        accent = MatchMovieAccent,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -571,60 +555,44 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    ProfileStatCard(
-                        icon = "☰",
-                        value = savedMovies.count().toString(),
-                        label = "number of Movies Saved",
+                    RatingStatCard(
+                        rating = averageRating,
+                        accent = MatchMovieSecondary,
                         modifier = Modifier.weight(1f)
                     )
-                    ProfileStatCard(
-                        icon = "↷",
-                        value = recentlyAddedMovies.firstOrNull()?.title ?: "-",
-                        label = "Latest Film Added",
-                        modifier = Modifier.weight(1f)
+                    HighestRatedStatCard(
+                        label = "Rating più alto",
+                        title = highestRatedMovie,
+                        posterUrl = topRatedMovies.firstOrNull()?.image,
+                        accent = MatchMoviePrimary,
+                        modifier = Modifier.weight(2f)
                     )
                 }
 
-                Spacer(modifier = Modifier.height(6.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
                     text = "TV Series Stats",
                     color = MatchMovieLightText,
-                    style = MaterialTheme.typography.titleLarge
+                    style = MaterialTheme.typography.headlineLarge,
+                    fontWeight = FontWeight.Bold
                 )
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    ProfileStatCard(
-                        icon = "★",
-                        value = averageTvSeriesRating,
-                        label = "AVG TV Rating",
-                        modifier = Modifier.weight(1f)
+                    ProgressStatCard(
+                        label = "Serie salvate",
+                        count = savedTvSeries.count(),
+                        goal = 8,
+                        accent = MatchMovieSecondary,
+                        icon = "\uD83D\uDCF1",
+                        modifier = Modifier.weight(2f)
                     )
-                    ProfileStatCard(
-                        icon = "◈",
-                        value = favoriteTvSeriesMood,
-                        label = "Favourite TV Mood",
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    ProfileStatCard(
-                        icon = "▣",
-                        value = highestRatedTvSeries,
-                        label = "Highest Rated Series",
-                        modifier = Modifier.weight(1f)
-                    )
-                    ProfileStatCard(
-                        icon = "↺",
-                        value = firstAddedTvSeries,
-                        label = "First Series Added",
+                    MoodStatCard(
+                        mood = favoriteTvSeriesMood,
+                        accent = MatchMovieAccent,
                         modifier = Modifier.weight(1f)
                     )
                 }
@@ -633,17 +601,17 @@ fun ProfileScreen(
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    ProfileStatCard(
-                        icon = "☰",
-                        value = savedTvSeries.count().toString(),
-                        label = "TV Series Saved",
+                    RatingStatCard(
+                        rating = averageTvSeriesRating,
+                        accent = MatchMoviePrimary,
                         modifier = Modifier.weight(1f)
                     )
-                    ProfileStatCard(
-                        icon = "↷",
-                        value = recentlyAddedTvSeries.firstOrNull()?.title ?: "-",
-                        label = "Latest Series Added",
-                        modifier = Modifier.weight(1f)
+                    HighestRatedStatCard(
+                        label = "Rating più alto",
+                        title = highestRatedTvSeries,
+                        posterUrl = topRatedTvSeries.firstOrNull()?.image,
+                        accent = MatchMovieSecondary,
+                        modifier = Modifier.weight(2f)
                     )
                 }
 
@@ -715,6 +683,216 @@ fun ProfileScreen(
         }
     }
 }
+}
+
+@Composable
+private fun ProgressStatCard(
+    label: String,
+    count: Int,
+    goal: Int,
+    accent: Color,
+    icon: String,
+    modifier: Modifier = Modifier
+) {
+    val progress = (count.toFloat() / goal).coerceIn(0f, 1f)
+    Box(
+        modifier = modifier
+            .height(160.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Brush.linearGradient(listOf(MatchMovieCard, MatchMovieBackground)))
+            .border(1.dp, MatchMovieMutedText.copy(alpha = 0.12f), RoundedCornerShape(20.dp))
+            .padding(20.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = label,
+                        color = MatchMovieMutedText,
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = count.toString(),
+                            color = MatchMovieLightText,
+                            style = MaterialTheme.typography.displayMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            text = "/$goal",
+                            color = MatchMovieMutedText.copy(alpha = 0.5f),
+                            style = MaterialTheme.typography.titleLarge,
+                            modifier = Modifier.padding(start = 4.dp, bottom = 6.dp)
+                        )
+                    }
+                }
+                Text(
+                    text = icon,
+                    color = accent,
+                    style = MaterialTheme.typography.headlineLarge
+                )
+            }
+            Spacer(modifier = Modifier.weight(1f))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(100.dp))
+                    .background(MatchMovieLightText.copy(alpha = 0.08f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(progress)
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(100.dp))
+                        .background(accent)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MoodStatCard(
+    mood: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(160.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Brush.linearGradient(listOf(MatchMovieCard, MatchMovieBackground)))
+            .border(1.dp, MatchMovieMutedText.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.fillMaxSize()
+        ) {
+            Text(
+                text = "\u25C8",
+                color = accent,
+                style = MaterialTheme.typography.headlineLarge
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = mood,
+                color = MatchMovieLightText,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "Mood preferito",
+                color = MatchMovieMutedText,
+                style = MaterialTheme.typography.labelSmall
+            )
+        }
+    }
+}
+
+@Composable
+private fun RatingStatCard(
+    rating: String,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(132.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Brush.linearGradient(listOf(MatchMovieCard, MatchMovieBackground)))
+            .border(1.dp, MatchMovieMutedText.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+            .padding(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "\u2605",
+                color = accent,
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Column {
+                Text(
+                    text = rating,
+                    color = MatchMovieLightText,
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "Voto medio",
+                    color = MatchMovieMutedText,
+                    style = MaterialTheme.typography.labelSmall
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HighestRatedStatCard(
+    label: String,
+    title: String,
+    posterUrl: String?,
+    accent: Color,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .height(132.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Brush.linearGradient(listOf(MatchMovieCard, MatchMovieBackground)))
+            .border(1.dp, MatchMovieMutedText.copy(alpha = 0.08f), RoundedCornerShape(20.dp))
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxSize(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(width = 56.dp, height = 80.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Brush.linearGradient(listOf(accent.copy(alpha = 0.4f), MatchMovieBackground)))
+                    .border(1.dp, MatchMovieLightText.copy(alpha = 0.1f), RoundedCornerShape(10.dp))
+            ) {
+                posterUrl?.takeIf { it.isNotBlank() }?.let { url ->
+                    AsyncImage(
+                        model = url,
+                        contentDescription = title,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                }
+            }
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    color = MatchMovieMutedText,
+                    style = MaterialTheme.typography.labelSmall
+                )
+                Text(
+                    text = title,
+                    color = MatchMovieLightText,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
 }
 
 @Composable
