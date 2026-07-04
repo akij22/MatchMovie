@@ -1,34 +1,42 @@
-# MatchMovie
+# 🎬 MatchMovie
 
-MatchMovie is an Android application that helps users discover, save, rate, and revisit movies. The app combines movie data from The Movie Database (TMDB), a local Room database for each user's saved list, Supabase-backed authentication, and an AI chat assistant powered through a Flask backend.
+MatchMovie is an Android application that helps users discover, save, rate, and revisit movies.
 
-## Demo
+It combines movie data from **The Movie Database (TMDB)**, a local **Room** database for each user's saved list, **Supabase-backed authentication**, and an **AI chat assistant** powered through a Flask backend.
+
+## 📽️ Demo
 
 Below is a short demo of the MatchMovie app in action.
+
 ![demo video](./demo_recordings/home_screen_demo.gif)
-## Features
 
-- User registration and login through the Flask backend and Supabase.
-- Home screen with popular movies, upcoming movies, search, and trailer links.
-- Movie detail pages with overview, rating, cast/crew information, recommendations, and save actions.
-- Swipe-style explore flow for discovering recommended movies.
-- Personal movie list stored locally with Room.
-- User ratings and mood classification for saved movies.
-- AI chat assistant that recommends movies using the user's saved movie context.
-- Profile and "Wrapped" style statistics based on saved movies, ratings, and moods.
+## ✨ Features
 
-## Tech Stack
+| Area | What MatchMovie Offers |
+| --- | --- |
+| 🔐 Authentication | User registration and login through the Flask backend and Supabase. |
+| 🏠 Discovery | Home screen with popular movies, upcoming movies, search, and trailer links. |
+| 🎞️ Movie Details | Overview, rating, cast/crew information, recommendations, and save actions. |
+| 👉 Explore | Swipe-style flow for discovering recommended movies. |
+| 💾 Personal List | Saved movies stored locally with Room. |
+| ⭐ Ratings | User ratings and mood classification for saved movies. |
+| 🤖 AI Assistant | Movie recommendations based on the user's saved movie context. |
+| 📊 Profile Stats | "Wrapped" style statistics based on saved movies, ratings, and moods. |
 
-- Android, Kotlin, Jetpack Compose, Material 3
-- Room for local persistence
-- Retrofit and Moshi for HTTP and JSON handling
-- Coil for image loading
-- Flask backend
-- Supabase for remote user storage
-- TMDB API for movie data
-- OpenRouter for AI chat completions
+## 🧰 Tech Stack
 
-## Project Structure
+| Layer | Tools |
+| --- | --- |
+| 📱 Android app | Android, Kotlin, Jetpack Compose, Material 3 |
+| 🗄️ Local storage | Room |
+| 🌐 Networking | Retrofit, Moshi |
+| 🖼️ Images | Coil |
+| 🧪 Backend | Flask |
+| ☁️ Remote storage | Supabase |
+| 🎥 Movie data | TMDB API |
+| 🧠 AI chat | OpenRouter |
+
+## 🗂️ Project Structure
 
 ```text
 .
@@ -41,13 +49,13 @@ Below is a short demo of the MatchMovie app in action.
 └── settings.gradle.kts   # Gradle project settings
 ```
 
-## Configuration Overview
+## ⚙️ Configuration Overview
 
 The Android app talks to the Flask backend instead of calling TMDB, OpenRouter, or Supabase directly. Keep all API keys and service credentials in `server/.env`; do not commit real secrets to the repository.
 
 By default, the app is configured for the Android emulator and expects the backend at `http://10.0.2.2:5001/`. For physical devices, update the Retrofit base URL to the LAN address of the computer running Flask.
 
-## Prerequisites
+## ✅ Prerequisites
 
 Install the following tools before running the project locally:
 
@@ -58,7 +66,7 @@ Install the following tools before running the project locally:
 - An OpenRouter API key
 - A Supabase project with a `users` table
 
-## Backend Setup
+## 🚀 Backend Setup
 
 1. Create the Supabase table by running [server/migration.sql](server/migration.sql) in the Supabase SQL editor.
 
@@ -89,7 +97,7 @@ flask --app app run --host 0.0.0.0 --port 5001
 
 The Android emulator can reach the local backend at `http://10.0.2.2:5001/`, which is the base URL currently configured in [RetrofitInstance.kt](app/src/main/java/com/example/matchmovie/network/RetrofitInstance.kt).
 
-## Android App Setup
+## 📱 Android App Setup
 
 1. From the repository root, make sure the Gradle wrapper is executable:
 
@@ -111,27 +119,27 @@ chmod +x ./gradlew
 
 If you run the app on a physical Android device, replace the Retrofit base URL with the local network address of the machine running Flask, for example `http://192.168.1.10:5001/`.
 
-## Useful Commands
+## 🛠️ Useful Commands
 
-Run unit tests:
+### Run unit tests
 
 ```bash
 ./gradlew test
 ```
 
-Run Android instrumented tests:
+### Run Android instrumented tests
 
 ```bash
 ./gradlew connectedAndroidTest
 ```
 
-Check backend health:
+### Check backend health
 
 ```bash
 curl http://localhost:5001/health
 ```
 
-## Backend Endpoints
+## 🔌 Backend Endpoints
 
 - `POST /auth/register`
 - `POST /auth/login`
@@ -149,13 +157,13 @@ curl http://localhost:5001/health
 
 Most movie and chat endpoints require the JWT returned by the authentication endpoints.
 
-## Notes
+## 📝 Notes
 
 - Saved movies are stored locally in the Android Room database.
 - Remote authentication data is stored in Supabase.
 - TMDB and OpenRouter calls are handled by the Flask backend so API keys are not embedded in the Android app.
 - The repository also contains a backend-specific README in [server/README.md](server/README.md).
 
-## License
+## 📄 License
 
 This project is distributed under the terms of the [MIT License](LICENSE).
