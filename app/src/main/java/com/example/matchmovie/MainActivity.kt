@@ -25,7 +25,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +34,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.lifecycleScope
 import com.example.matchmovie.components.LoadingScreen
 import com.example.matchmovie.components.MatchMovieBottomBar
 import com.example.matchmovie.components.MatchMovieTitle
@@ -91,7 +91,6 @@ class MainActivity : ComponentActivity() {
 
             var currentUser by remember { mutableStateOf<User?>(null) }
             var isAuthLoaded by remember { mutableStateOf(false) }
-            val coroutineScope = rememberCoroutineScope()
 
             // Memorizzo il cast ottenuto dall'id del film
             var castByMovie by remember { mutableStateOf<MovieCreditsDto?>(null) }
@@ -102,6 +101,8 @@ class MainActivity : ComponentActivity() {
             // Mantengo lo stato della chat nel componente padre di AIChatScreen, così non viene perso cambiando schermata
             var chatMessages by remember { mutableStateOf<List<ChatMessage>>(emptyList()) }
             var chatMessagePrompt by remember { mutableStateOf("") }
+            var isChatSending by remember { mutableStateOf(false) }
+            var chatErrorMessage by remember { mutableStateOf<String?>(null) }
 
 
             // Imposto come schermata di inizio quella di Login
@@ -330,9 +331,14 @@ class MainActivity : ComponentActivity() {
                                                     onChatMessagesChange = { chatMessages = it },
                                                     messagePrompt = chatMessagePrompt,
                                                     onMessagePromptChange = { chatMessagePrompt = it },
+                                                    isSending = isChatSending,
+                                                    onIsSendingChange = { isChatSending = it },
+                                                    errorMessage = chatErrorMessage,
+                                                    onErrorMessageChange = { chatErrorMessage = it },
                                                     onMovieSelected = ::onChatMovieSelected,
                                                     currentUser = user,
-                                                    dao = dao
+                                                    dao = dao,
+                                                    externalScope = lifecycleScope
                                                 )
                                             } ?: run {
                                                 currentScreen = Screen.LoginPage
@@ -347,7 +353,7 @@ class MainActivity : ComponentActivity() {
                                                     currentUser = updatedUser
                                                 },
                                                 onLogout = {
-                                                    coroutineScope.launch {
+                                                    lifecycleScope.launch {
                                                         withContext(Dispatchers.IO) {
                                                             dao.logoutAllUsers()
                                                         }

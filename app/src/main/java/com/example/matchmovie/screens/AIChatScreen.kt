@@ -34,7 +34,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +59,7 @@ import com.example.matchmovie.ui.theme.MatchMovieLightText
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
 import com.example.matchmovie.ui.theme.MatchMoviePrimary
 import com.example.matchmovie.ui.theme.MatchMovieSecondary
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -74,17 +74,19 @@ fun AIChatScreen(
     onChatMessagesChange: (List<ChatMessage>) -> Unit,
     messagePrompt: String,
     onMessagePromptChange: (String) -> Unit,
+    isSending: Boolean,
+    onIsSendingChange: (Boolean) -> Unit,
+    errorMessage: String?,
+    onErrorMessageChange: (String?) -> Unit,
     onMovieSelected: suspend (SingleMovieResultDto) -> Unit,
     currentUser: User,
-    dao: FilmDAO
+    dao: FilmDAO,
+    externalScope: CoroutineScope
 ) {
 
     var hasSubmittedSearch by remember { mutableStateOf(false) }
 
 
-    val coroutineScope = rememberCoroutineScope()
-    var isSending by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     var savedMovies by remember { mutableStateOf<List<UserMovie>>(emptyList()) }
     val userContext = buildUserContext(currentUser, savedMovies)
 
@@ -198,9 +200,9 @@ fun AIChatScreen(
                         onMessagePromptChange("")
                         hasSubmittedSearch = true
 
-                        coroutineScope.launch {
-                            isSending = true
-                            errorMessage = null
+                        externalScope.launch {
+                            onIsSendingChange(true)
+                            onErrorMessageChange(null)
                             try {
 
                                 // Invoco l'API del backend per l'invio del messaggio ad un modello AI
@@ -223,10 +225,10 @@ fun AIChatScreen(
 
                             } catch (e: Exception) {
                                 Log.e("AIChatScreen", "Unable to send chat message", e)
-                                errorMessage = e.toChatErrorMessage()
+                                onErrorMessageChange(e.toChatErrorMessage())
                             } finally {
 
-                                isSending = false
+                                onIsSendingChange(false)
                             }
 
                         }
