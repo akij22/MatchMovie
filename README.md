@@ -18,7 +18,7 @@ Below is a short demo of the MatchMovie app in action.
 | 🏠 Discovery | Home screen with popular movies, upcoming movies, search, and trailer links. |
 | 🎞️ Movie Details | Overview, rating, cast/crew information, recommendations, and save actions. |
 | 👉 Explore | Swipe-style flow for discovering recommended movies. |
-| 💾 Personal List | Saved movies stored locally with Room. |
+| 💾 Local Storage | Saved movies and cached discovery data stored locally with Room. |
 | ⭐ Ratings | User ratings and mood classification for saved movies. |
 | 🤖 AI Assistant | Movie recommendations based on the user's saved movie context. |
 | 📊 Profile Stats | "Wrapped" style statistics based on saved movies, ratings, and moods. |
@@ -35,6 +35,24 @@ Below is a short demo of the MatchMovie app in action.
 | ☁️ Remote storage | Supabase |
 | 🎥 Movie data | TMDB API |
 | 🧠 AI chat | OpenRouter |
+
+## 💾 Local Cache
+
+The Android app uses Room for both user-owned data and API response caching.
+
+User-saved movies and TV series are stored as structured Room entities. Home and search data are stored in a generic `ApiCacheEntry` table:
+
+- `cacheKey`: identifies the cached resource, such as `home_popular_movies` or `search_movie:<query>`.
+- `payloadJson`: stores the backend response serialized as JSON.
+- `fetchedAtMillis`: stores when the response was cached, so the app can decide whether it is still fresh.
+
+The Home screen reads through `HomeCacheRepository`, which applies a cache-first strategy:
+
+- Home lists, including popular movies, upcoming movies, popular TV series, and top-rated TV series, use a 12-hour TTL.
+- Movie and TV genre lists use a 30-day TTL.
+- Text search results use a 1-hour TTL and normalized query-based cache keys.
+
+If cached data is still valid, the app uses it without calling the backend. If the cache is missing or expired, the app refreshes it from the backend and saves the new JSON payload in Room. If the backend request fails but old cached data exists, the app falls back to the cached payload.
 
 ## 🗂️ Project Structure
 
