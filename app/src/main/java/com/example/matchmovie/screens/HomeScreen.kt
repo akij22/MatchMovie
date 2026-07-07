@@ -64,10 +64,12 @@ import com.example.matchmovie.components.MovieCard
 import com.example.matchmovie.enumentity.MovieMood
 import com.example.matchmovie.network.dto.SingleTvSeriesResultDto
 import com.example.matchmovie.network.dto.toMovieCardDto
+import com.example.matchmovie.repository.HomeCacheRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.example.matchmovie.utils.YOUTUBE_BASE_URL
+import kotlinx.coroutines.async
 
 private enum class HomeContentType {
     Film,
@@ -110,6 +112,9 @@ fun HomeScreen(
     var tvGenresById by remember { mutableStateOf<Map<Int, String>>(emptyMap()) }
 
     val coroutineScope = rememberCoroutineScope()
+    val homeCacheRepository = remember(dao) {
+        HomeCacheRepository(dao)
+    }
 
     // Definisco il context per l'esecuzione degli intents
     val context = LocalContext.current
@@ -189,8 +194,10 @@ fun HomeScreen(
     // Recupero dei generi mediante API del backend
     suspend fun obtainGenres(): Map<Int, String> {
         return try {
-            val response = withContext(Dispatchers.IO) {
-                RetrofitInstance.api.getGenres()
+            val response = homeCacheRepository.getMovieGenres {
+                withContext(Dispatchers.IO) {
+                    RetrofitInstance.api.getGenres()
+                }
             }
 
             // Mappatura da genere a mood
@@ -208,8 +215,10 @@ fun HomeScreen(
 
     suspend fun obtainTvSeriesGenres(): Map<Int, String> {
         return try {
-            val response = withContext(Dispatchers.IO) {
-                RetrofitInstance.api.getTvSeriesGenres()
+            val response = homeCacheRepository.getTvSeriesGenres {
+                withContext(Dispatchers.IO) {
+                    RetrofitInstance.api.getTvSeriesGenres()
+                }
             }
 
             val loadedGenresById = response.genres.associate { genre ->
@@ -228,8 +237,10 @@ fun HomeScreen(
         popularMoviesError = null
 
         try {
-            val response = withContext(Dispatchers.IO) {
-                RetrofitInstance.api.getPopularMovies()
+            val response = homeCacheRepository.getPopularMovies {
+                withContext(Dispatchers.IO) {
+                    RetrofitInstance.api.getPopularMovies()
+                }
             }
 
             // Applico il mood ottenuto alla lista di film popolari della SearchScreen
@@ -252,8 +263,10 @@ fun HomeScreen(
         upcomingMoviesError = null
 
         try {
-            val response = withContext(Dispatchers.IO) {
-                RetrofitInstance.api.getUpcomingMovies()
+            val response = homeCacheRepository.getUpcomingMovies {
+                withContext(Dispatchers.IO) {
+                    RetrofitInstance.api.getUpcomingMovies()
+                }
             }
             val popularMovieIds = popularMovies.map { movie -> movie.id }.toSet()
             val upcomingMoviesNotInPopular = response.results.filterNot { movie ->
@@ -282,8 +295,10 @@ fun HomeScreen(
         popularTvSeriesError = null
 
         try {
-            val response = withContext(Dispatchers.IO) {
-                RetrofitInstance.api.getPopularTvSeries()
+            val response = homeCacheRepository.getPopularTvSeries {
+                withContext(Dispatchers.IO) {
+                    RetrofitInstance.api.getPopularTvSeries()
+                }
             }
 
             popularTvSeries = applyMoodToTvSeries(response.results, genreNamesById)
@@ -300,8 +315,10 @@ fun HomeScreen(
         topRatedTvSeriesError = null
 
         try {
-            val response = withContext(Dispatchers.IO) {
-                RetrofitInstance.api.getTopRatedTvSeries()
+            val response = homeCacheRepository.getTopRatedTvSeries {
+                withContext(Dispatchers.IO) {
+                    RetrofitInstance.api.getTopRatedTvSeries()
+                }
             }
 
             topRatedTvSeries = applyMoodToTvSeries(response.results, genreNamesById)
@@ -330,8 +347,10 @@ fun HomeScreen(
                 obtainGenres()
             }
 
-            val response = withContext(Dispatchers.IO) {
-                RetrofitInstance.api.searchMovies(filmString)
+            val response = homeCacheRepository.searchMovies(filmString) {
+                withContext(Dispatchers.IO) {
+                    RetrofitInstance.api.searchMovies(filmString)
+                }
             }
 
             // Assegno ai film ricercati il mood corrispondente
@@ -358,8 +377,10 @@ fun HomeScreen(
                 obtainTvSeriesGenres()
             }
 
-            val response = withContext(Dispatchers.IO) {
-                RetrofitInstance.api.searchTvSeries(filmString)
+            val response = homeCacheRepository.searchTvSeries(filmString) {
+                withContext(Dispatchers.IO) {
+                    RetrofitInstance.api.searchTvSeries(filmString)
+                }
             }
 
             tvSeries = applyMoodToTvSeries(response.results, genreNamesById)
@@ -393,13 +414,20 @@ fun HomeScreen(
 
 
     LaunchedEffect(Unit) {
-        val genreNamesById = obtainGenres()
-        obtainFamousFilms(genreNamesById)
-        obtainUpcomingFilms(genreNamesById)
+        val movieGenresDeferred = async { obtainGenres() }
+        val tvGenresDeferred = async { obtainTvSeriesGenres() }
 
-        val tvGenreNamesById = obtainTvSeriesGenres()
-        obtainPopularTvSeries(tvGenreNamesById)
-        obtainTopRatedTvSeries(tvGenreNamesById)
+        val genreNamesById = movieGenresDeferred.await()
+        val tvGenreNamesById = tvGenresDeferred.await()
+
+        val popularMoviesDeferred = async { obtainFamousFilms(genreNamesById) }
+        val popularTvSeriesDeferred = async { obtainPopularTvSeries(tvGenreNamesById) }
+        val topRatedTvSeriesDeferred = async { obtainTopRatedTvSeries(tvGenreNamesById) }
+
+        popularMoviesDeferred.await()
+        obtainUpcomingFilms(genreNamesById)
+        popularTvSeriesDeferred.await()
+        topRatedTvSeriesDeferred.await()
     }
 
     // Film in primo piano: prendo dalla lista dei film popolari quello con data di uscita più recente
