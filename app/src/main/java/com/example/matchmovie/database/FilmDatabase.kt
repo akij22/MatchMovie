@@ -8,8 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [UserMovie::class, UserTvSerie::class, User::class],
-    version = 5,
+    entities = [UserMovie::class, UserTvSerie::class, User::class, ApiCacheEntry::class],
+    version = 6,
     exportSchema = false
 )
 abstract class FilmDatabase : RoomDatabase() {
@@ -75,6 +75,21 @@ abstract class FilmDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS `ApiCacheEntry` (
+                        `cacheKey` TEXT NOT NULL,
+                        `payloadJson` TEXT NOT NULL,
+                        `fetchedAtMillis` INTEGER NOT NULL,
+                        PRIMARY KEY(`cacheKey`)
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
 
         fun getInstance(context: Context): FilmDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -86,6 +101,7 @@ abstract class FilmDatabase : RoomDatabase() {
                     .addMigrations(MIGRATION_2_3)
                     .addMigrations(MIGRATION_3_4)
                     .addMigrations(MIGRATION_4_5)
+                    .addMigrations(MIGRATION_5_6)
                     .build()
                 INSTANCE = instance
                 instance

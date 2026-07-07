@@ -61,4 +61,16 @@ interface FilmDAO{
 
     @Query("UPDATE User SET profileImage = :profileImage, bio = :bio WHERE _id = :userId")
     suspend fun updateUserProfile(userId: Int, profileImage: String?, bio: String?)
+
+    @Query("SELECT * FROM ApiCacheEntry WHERE cacheKey = :cacheKey LIMIT 1")
+    suspend fun getCacheEntry(cacheKey: String): ApiCacheEntry?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertCacheEntry(cacheEntry: ApiCacheEntry)
+
+    @Query("DELETE FROM ApiCacheEntry WHERE cacheKey = :cacheKey")
+    suspend fun deleteCacheEntry(cacheKey: String)
+
+    @Query("DELETE FROM ApiCacheEntry WHERE fetchedAtMillis < :oldestAllowedMillis")
+    suspend fun deleteCacheEntriesOlderThan(oldestAllowedMillis: Long)
 }
