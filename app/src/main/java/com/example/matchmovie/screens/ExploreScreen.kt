@@ -2,9 +2,14 @@ package com.example.matchmovie.screens
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,9 +17,12 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,8 +36,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -43,9 +53,12 @@ import com.example.matchmovie.model.loadTopRatedUserMovies
 import com.example.matchmovie.network.RetrofitInstance
 import com.example.matchmovie.network.dto.SingleMovieResultDto
 import com.example.matchmovie.ui.theme.MatchMovieBackground
+import com.example.matchmovie.ui.theme.MatchMovieCard
+import com.example.matchmovie.ui.theme.MatchMovieLightText
 import com.example.matchmovie.ui.theme.MatchMovieMutedButton
 import com.example.matchmovie.ui.theme.MatchMovieMutedText
 import com.example.matchmovie.ui.theme.MatchMoviePrimary
+import com.example.matchmovie.ui.theme.MatchMovieSurface
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -76,6 +89,7 @@ fun ExploreScreen(
     val swipeOffset = remember { Animatable(0f) }
     val configuration = LocalConfiguration.current
     val screenWidthPx = with(LocalDensity.current) { configuration.screenWidthDp.dp.toPx() }
+    val swipeThreshold = screenWidthPx * 0.22f
 
     LaunchedEffect(currentUser._id) {
         try {
@@ -95,6 +109,32 @@ fun ExploreScreen(
 
     // film corrente da mostrare nella Card
     val currentMovie = recommendedMovies.getOrNull(currentMovieIndex)
+    val totalMovies = recommendedMovies.size
+    val progress = if (totalMovies == 0) 0f else {
+        (currentMovieIndex + 1).coerceAtMost(totalMovies).toFloat() / totalMovies
+    }
+
+    fun skipMovie() {
+        coroutineScope.launch {
+            swipeOffset.animateTo(
+                targetValue = -screenWidthPx * 1.5f,
+                animationSpec = tween(durationMillis = 360)
+            )
+            currentMovieIndex++
+            swipeOffset.snapTo(0f)
+        }
+    }
+
+    fun likeMovie(movie: SingleMovieResultDto) {
+        coroutineScope.launch {
+            swipeOffset.animateTo(
+                targetValue = screenWidthPx * 1.5f,
+                animationSpec = tween(durationMillis = 360)
+            )
+            pendingRating = 0
+            pendingMovie = movie
+        }
+    }
 
     // Dialog di rating: mostrato quando l'utente clicca sul cuore per fargli assegnare il rating del rispettivo film
     pendingMovie?.let { movie ->
@@ -161,84 +201,114 @@ fun ExploreScreen(
         )
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MatchMovieBackground)
-            .padding(horizontal = 16.dp, vertical = 20.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        Color(0xFF0E151C),
+                        MatchMovieBackground,
+                        Color(0xFF151B21)
+                    )
+                )
+            )
     ) {
-        when {
-            errorMessage != null -> StatusMessage(errorMessage.orEmpty())
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            ExploreHeader(
+                currentIndex = currentMovieIndex,
+                totalMovies = totalMovies,
+                progress = progress
+            )
 
-            /* Se currentMovie == null, può essere che
-            * - l'utente non abbia film salvati --> mostro popularMovies
-            * - i recommendedMovies sono terminati --> mostro avviso del termine
-            * */
-            currentMovie == null && recommendedMovies.isEmpty() -> LoadingScreen(
-                message = "Loading movies...",
-                modifier = Modifier.fillMaxSize()
-            )
-            currentMovie == null -> InfoMessage(
-                imageRes = R.drawable.end_list,
-                message = "No more movies to explore"
-            )
-            else -> {
-                ExploreMovieCard(
-                    movie = currentMovie,
-                    modifier = Modifier
-                        .weight(1f)
-                        .graphicsLayer {
-                            translationX = swipeOffset.value
-                            rotationZ = (swipeOffset.value / screenWidthPx.coerceAtLeast(1f)) * 15f
-                            transformOrigin = TransformOrigin(0.5f, 1f)
-                        }
+            Spacer(modifier = Modifier.height(18.dp))
+
+            when {
+                errorMessage != null -> StatusMessage(
+                    message = errorMessage.orEmpty(),
+                    modifier = Modifier.weight(1f)
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                /* Se currentMovie == null, può essere che
+                * - l'utente non abbia film salvati --> mostro popularMovies
+                * - i recommendedMovies sono terminati --> mostro avviso del termine
+                * */
+                currentMovie == null && recommendedMovies.isEmpty() -> LoadingScreen(
+                    message = "Finding movies for you...",
+                    modifier = Modifier.weight(1f)
+                )
+                currentMovie == null -> Box(
+                    modifier = Modifier.weight(1f),
+                    contentAlignment = Alignment.Center
                 ) {
-                    ExploreActionButton(
-                        text = "×",
-                        backgroundColor = MatchMovieMutedButton,
-                        contentColor = MatchMovieMutedText,
-                        modifier = Modifier.weight(1f),
-                        enabled = !swipeOffset.isRunning,
-                        onClick = {
-                            coroutineScope.launch {
-                                swipeOffset.animateTo(
-                                    targetValue = -screenWidthPx * 1.5f,
-                                    animationSpec = tween(durationMillis = 400)
-                                )
-                                currentMovieIndex++
-                                swipeOffset.snapTo(0f)
-                            }
-                        }
+                    InfoMessage(
+                        imageRes = R.drawable.end_list,
+                        message = "No more movies to explore"
                     )
-
-                    Spacer(modifier = Modifier.size(24.dp))
-
-                    ExploreActionButton(
-                        text = "♥",
-                        backgroundColor = MatchMoviePrimary,
-                        contentColor = Color.White,
+                }
+                else -> {
+                    BoxWithConstraints(
                         modifier = Modifier.weight(1f),
-                        enabled = !swipeOffset.isRunning,
-                        onClick = {
-                            coroutineScope.launch {
-                                swipeOffset.animateTo(
-                                    targetValue = screenWidthPx * 1.5f,
-                                    animationSpec = tween(durationMillis = 400)
-                                )
-                                // Apro il popup di rating dopo che la card e' uscita dallo schermo
-                                pendingRating = 0
-                                pendingMovie = currentMovie
-                            }
+                        contentAlignment = Alignment.Center
+                    ) {
+                        val cardMaxWidth = if (maxWidth < maxHeight * 2f / 3f) {
+                            maxWidth
+                        } else {
+                            maxHeight * 2f / 3f
                         }
-                    )
+
+                        Box(
+                            modifier = Modifier
+                                .width(cardMaxWidth)
+                                .graphicsLayer {
+                                    translationX = swipeOffset.value
+                                    rotationZ =
+                                        (swipeOffset.value / screenWidthPx.coerceAtLeast(1f)) * 14f
+                                    transformOrigin = TransformOrigin(0.5f, 1f)
+                                }
+                                .pointerInput(currentMovie.id) {
+                                    detectHorizontalDragGestures(
+                                        onDragEnd = {
+                                            when {
+                                                swipeOffset.value <= -swipeThreshold -> skipMovie()
+                                                swipeOffset.value >= swipeThreshold -> likeMovie(currentMovie)
+                                                else -> coroutineScope.launch {
+                                                    swipeOffset.animateTo(
+                                                        targetValue = 0f,
+                                                        animationSpec = tween(durationMillis = 220)
+                                                    )
+                                                }
+                                            }
+                                        },
+                                        onHorizontalDrag = { change, dragAmount ->
+                                            change.consume()
+                                            coroutineScope.launch {
+                                                swipeOffset.snapTo(swipeOffset.value + dragAmount)
+                                            }
+                                        }
+                                    )
+                                }
+                        ) {
+                            ExploreMovieCard(
+                                movie = currentMovie,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            ExploreCardActions(
+                                canInteract = !swipeOffset.isRunning,
+                                onSkip = { skipMovie() },
+                                onLike = { likeMovie(currentMovie) },
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 18.dp)
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -295,29 +365,132 @@ private suspend fun loadRecommendedMovies(
 }
 
 @Composable
-private fun ExploreActionButton(
-    text: String,
-    backgroundColor: Color,
-    contentColor: Color,
-    modifier: Modifier = Modifier,
-    enabled: Boolean = true,
-    onClick: () -> Unit
+private fun ExploreHeader(
+    currentIndex: Int,
+    totalMovies: Int,
+    progress: Float
 ) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        shape = CircleShape,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = backgroundColor,
-            contentColor = contentColor
-        ),
-        modifier = modifier.size(80.dp)
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            text = text,
-            style = MaterialTheme.typography.headlineLarge,
-            fontWeight = FontWeight.Bold
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "Explore",
+                    color = MatchMovieLightText,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "Swipe through hand-picked movie ideas",
+                    color = MatchMovieMutedText,
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+
+            AssistChip(
+                onClick = {},
+                label = {
+                    Text(
+                        text = if (totalMovies == 0) "..." else "${(currentIndex + 1).coerceAtMost(totalMovies)}/$totalMovies",
+                        fontWeight = FontWeight.SemiBold
+                    )
+                },
+                border = BorderStroke(1.dp, Color(0x22FFFFFF))
+            )
+        }
+
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(6.dp),
+            color = MatchMoviePrimary,
+            trackColor = MatchMovieSurface
         )
     }
 }
 
+@Composable
+private fun ExploreCardActions(
+    canInteract: Boolean,
+    onSkip: () -> Unit,
+    onLike: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(34.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        ExploreActionButton(
+            symbol = "×",
+            label = "Skip",
+            backgroundColor = MatchMovieMutedButton,
+            contentColor = MatchMovieMutedText,
+            enabled = canInteract,
+            onClick = onSkip
+        )
+
+        ExploreActionButton(
+            symbol = "♥",
+            label = "Save",
+            backgroundColor = MatchMoviePrimary,
+            contentColor = Color.White,
+            enabled = canInteract,
+            onClick = onLike
+        )
+    }
+}
+
+@Composable
+private fun ExploreActionButton(
+    symbol: String,
+    label: String,
+    backgroundColor: Color,
+    contentColor: Color,
+    enabled: Boolean = true,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Button(
+            onClick = onClick,
+            enabled = enabled,
+            shape = CircleShape,
+            contentPadding = PaddingValues(0.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = backgroundColor,
+                contentColor = contentColor,
+                disabledContainerColor = MatchMovieCard,
+                disabledContentColor = MatchMovieMutedText
+            ),
+            modifier = Modifier.size(66.dp)
+        ) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = symbol,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
+
+        Text(
+            text = label,
+            color = MatchMovieMutedText,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold
+        )
+    }
+}

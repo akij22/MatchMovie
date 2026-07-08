@@ -72,7 +72,7 @@ fun ExploreMovieCard(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .fillMaxWidth()
-                .padding(22.dp)
+                .padding(start = 22.dp, top = 22.dp, end = 22.dp, bottom = 108.dp)
         ) {
             Text(
                 text = if (releaseYear.isBlank()) movie.title else "${movie.title}  $releaseYear",
